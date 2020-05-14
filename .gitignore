@@ -1,0 +1,4 @@
+__pycache__
+dev
+*.geo_unrolled
+*.msh
