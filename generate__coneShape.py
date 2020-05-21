@@ -7,7 +7,7 @@ import gmsh_api.gmsh as gmsh
 # ===  generate cone Shape                              === #
 # ========================================================= #
 def generate__coneShape( lc=1.0, r1=1.0, r2=0.0, origin=[0.0,0.0,0.0], th1=0.0, th2=180.0,
-                         height=1.0 ):
+                         height=1.0, side="+" ):
     
     # ------------------------------------------------- #
     # --- [1] Preparation                           --- #
@@ -17,6 +17,8 @@ def generate__coneShape( lc=1.0, r1=1.0, r2=0.0, origin=[0.0,0.0,0.0], th1=0.0, 
     x_,y_,z_,lc_,tag_                     = 0, 1, 2, 3, 4
     if ( r2 == 0.0  ): cross_section = "triangle"
     th1, th2 = np.pi/180.0*th1, np.pi/180.0*th2
+    if ( side == "-" ):
+        th1, th2 = th1+np.pi, th2+np.pi
     
     # ------------------------------------------------- #
     # --- [2] generate points                       --- #
