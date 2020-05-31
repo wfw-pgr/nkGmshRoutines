@@ -3,21 +3,27 @@ import numpy         as np
 import gmsh_api.gmsh as gmsh
 
 # ========================================================= #
-# ===  generate quad shape                              === #
+# ===  generate polygon                                 === #
 # ========================================================= #
-def generate__quadShape( lc=0.1, x1=None, x2=None, x3=None, x4=None, \
-                         extrude_delta=None, defineVolu=False ):
+def generate__polygon( lc=0.1, vertex=None, key="poly", \
+                       extrude_delta=None, defineVolu=False ):
     # ------------------------------------------------- #
     # --- [0] Arguments                             --- #
     # ------------------------------------------------- #
-    if ( x1 is None ): sys.exit( "[generate__quadShape] x1 == ???" )
-    if ( x2 is None ): sys.exit( "[generate__quadShape] x2 == ???" )
-    if ( x3 is None ): sys.exit( "[generate__quadShape] x3 == ???" )
-    if ( x4 is None ): sys.exit( "[generate__quadShape] x4 == ???" )
+    if ( vertex is None ):
+        sys.exit( "[generate__polygon] vertex == ???" )
     if ( defineVolu ):
         if ( extrude_delta is None ):
-            sys.exit( "[generate__quadShape] defineVolu=True, but, extrude_delta is None" )
-
+            sys.exit( "[generate__polygon] defineVolu=True, but, extrude_delta is None" )
+    if ( type( vertex ) is not np.ndarray ):
+        vertex = np.array( vertex )
+    if ( vertex.shape[1] == 3 ):
+        vertex_ = np.copy( vertex )
+        vertex  = np.zeros( (vertex_.shape[0],5) )
+        vertex[:,0:3] = np.copy( vertex_ )
+        vertex[:,  3] = lc
+        vertex[:,  4] = 0
+        
     # ------------------------------------------------- #
     # --- [1] Preparation                           --- #
     # ------------------------------------------------- #
@@ -29,30 +35,31 @@ def generate__quadShape( lc=0.1, x1=None, x2=None, x3=None, x4=None, \
     # --- [2] generate Arc / End Lines              --- #
     # ------------------------------------------------- #
     #  -- [2-1] generate points                     --  #
-    pts["x1"] = [ x1[0], x1[1], x1[2], lc, 0 ]
-    pts["x2"] = [ x2[0], x2[1], x2[2], lc, 0 ]
-    pts["x3"] = [ x3[0], x3[1], x3[2], lc, 0 ]
-    pts["x4"] = [ x4[0], x4[1], x4[2], lc, 0 ]
-    for ik in [ i+1 for i in range(4) ]:
-        key            = "x{0}".format(ik)
+    ptkeys       = []
+    for ik, vert in enumerate( vertex ):
+        key            = "{0}_{1:04}".format( key, ik )
+        pts[key]       = [ vert[0], vert[1], vert[2], vert[3], vert[4] ]
         pts[key][tag_] = gmsh.model.occ.addPoint( pts[key][x_], pts[key][y_], pts[key][z_], \
                                                   meshSize=pts[key][lc_] )
+        ptkeys.append( key )
+        
     #  -- [2-2] generate lines                      --  #
     lineLoop = []
-    for ik1,ik2 in [ (1,2), (2,3), (3,4), (4,1) ]:
-        ptkey1, ptkey2 = "x{0}".format(ik1), "x{0}".format(ik2)
-        linekey        = "line_{0}_{1}".format(ik1,ik2)
-        line[linekey]  = gmsh.model.occ.addLine( pts[ptkey1][tag_], pts[ptkey2][tag_] )
+    keys_1   = np.roll( np.array( ptkeys ),  0 )
+    keys_2   = np.roll( np.array( ptkeys ), -1 )
+    for ik in range( keys_1.shape[0] ):
+        linekey        = "line_{0}".format( ik )
+        line[linekey]  = gmsh.model.occ.addLine( pts[keys_1[ik]][tag_], pts[keys_2[ik]][tag_] )
         lineLoop.append( line[linekey] )
         
     #  -- [2-3] generate surfaces                   --  #
     lineGroup          = gmsh.model.occ.addCurveLoop( lineLoop )
-    surf["quad"]       = gmsh.model.occ.addPlaneSurface( [ lineGroup ] )
+    surf["polygon"]    = gmsh.model.occ.addPlaneSurface( [ lineGroup ] )
     #  -- [2-4] generate volume                     --  #
     if ( defineVolu ):
-        ret            = gmsh.model.occ.extrude( [ (surfPhys,surf["quad"]) ], extrude_delta[0], \
+        ret            = gmsh.model.occ.extrude( [ (surfPhys,surf["polygon"]) ], extrude_delta[0], \
                                                  extrude_delta[1], extrude_delta[2] )
-        volu["quad"]   = ret[1][1]
+        volu["polygon"]   = ret[1][1]
     
     # ------------------------------------------------- #
     # --- [4] PostProcess                           --- #
@@ -72,13 +79,14 @@ if ( __name__=="__main__" ):
 
     lc    =  0.10
     x1    =  [0.0,0.0,0.0]
-    x2    =  [0.6,0.0,0.0]
-    x3    =  [0.6,0.6,0.0]
-    x4    =  [0.0,0.6,0.0]
+    x2    =  [0.4,0.0,0.0]
+    x3    =  [0.6,0.5,0.0]
+    x4    =  [0.0,0.8,0.0]
     delta =  [0.0,0.0,1.0]
-    # generate__quadShape( lc=lc, x1=x1, x2=x2, x3=x3, x4=x4 )
-    generate__quadShape( lc=lc, x1=x1, x2=x2, x3=x3, x4=x4, \
-                         defineVolu=True, extrude_delta=delta )
+    vertex = np.array( [ x1, x2, x3, x4 ] )
+    print( vertex.shape )
+    generate__polygon( lc=lc, vertex=vertex, \
+                       defineVolu=True, extrude_delta=delta )
     
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)

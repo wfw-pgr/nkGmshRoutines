@@ -6,24 +6,23 @@ import gmsh_api.gmsh as gmsh
 # ========================================================= #
 # ===  generate quad shape                              === #
 # ========================================================= #
-def generate__squareTube( xi1=None, xi2=None, xi3=None, xi4=None, \
-                          xo1=None, xo2=None, xo3=None, xo4=None, \
-                          lc=0.1  , extrude_delta=None, defineVolu=False ):
+def generate__squareTube( Li1=None, Li2=None, Lo1=None, Lo2=None, height=None, origin=None, \
+                          lc =0.1 , extrude_delta=None, defineVolu=False ):
     # ------------------------------------------------- #
     # --- [0] Arguments                             --- #
     # ------------------------------------------------- #
-    if ( xi1 is None ): sys.exit( "[generate__squareTube] xi1 == ???" )
-    if ( xi2 is None ): sys.exit( "[generate__squareTube] xi2 == ???" )
-    if ( xi3 is None ): sys.exit( "[generate__squareTube] xi3 == ???" )
-    if ( xi4 is None ): sys.exit( "[generate__squareTube] xi4 == ???" )
-    if ( xo1 is None ): sys.exit( "[generate__squareTube] xo1 == ???" )
-    if ( xo2 is None ): sys.exit( "[generate__squareTube] xo2 == ???" )
-    if ( xo3 is None ): sys.exit( "[generate__squareTube] xo3 == ???" )
-    if ( xo4 is None ): sys.exit( "[generate__squareTube] xo4 == ???" )
+    if ( Li1    is None ): sys.exit( "[generate__squareTube] Li1    == ???" )
+    if ( Li2    is None ): sys.exit( "[generate__squareTube] Li2    == ???" )
+    if ( Lo1    is None ): sys.exit( "[generate__squareTube] Lo1    == ???" )
+    if ( Lo2    is None ): sys.exit( "[generate__squareTube] Lo2    == ???" )
+    if ( origin is None ): sys.exit( "[generate__squareTube] origin == ???" )
     if ( defineVolu ):
         if ( extrude_delta is None ):
             sys.exit( "[generate__squareTube] defineVolu=True, but, extrude_delta is None" )
 
+    w1 = ( Lo1 - Li1 ) * 0.5
+    w2 = ( Lo2 - Li2 ) * 0.5
+    
     # ------------------------------------------------- #
     # --- [1] Preparation                           --- #
     # ------------------------------------------------- #
@@ -35,14 +34,16 @@ def generate__squareTube( xi1=None, xi2=None, xi3=None, xi4=None, \
     # --- [2] generate Arc / End Lines              --- #
     # ------------------------------------------------- #
     #  -- [2-1] generate points                     --  #
-    pts["xi1"] = [ xi1[0], xi1[1], xi1[2], lc, 0 ]
-    pts["xi2"] = [ xi2[0], xi2[1], xi2[2], lc, 0 ]
-    pts["xi3"] = [ xi3[0], xi3[1], xi3[2], lc, 0 ]
-    pts["xi4"] = [ xi4[0], xi4[1], xi4[2], lc, 0 ]
-    pts["xo1"] = [ xo1[0], xo1[1], xo1[2], lc, 0 ]
-    pts["xo2"] = [ xo2[0], xo2[1], xo2[2], lc, 0 ]
-    pts["xo3"] = [ xo3[0], xo3[1], xo3[2], lc, 0 ]
-    pts["xo4"] = [ xo4[0], xo4[1], xo4[2], lc, 0 ]
+
+    pts["vL_1"] = [ origin[0]    , origin[1]    , origin[2], lc, 0 ]
+    pts["vL_2"] = [ origin[0]+w1 , origin[1]    , origin[2], lc, 0 ]
+    pts["vL_3"] = [ origin[0]+w1 , origin[1]+Li2, origin[2], lc, 0 ]
+    pts["vL_4"] = [ origin[0]    , origin[1]+Li2, origin[2], lc, 0 ]
+    
+    pts["vB_1"] = [ origin[0]+w1    , origin[1]    , origin[2], lc, 0 ]
+    pts["vB_2"] = [ origin[0]+w1+Li1, origin[1]    , origin[2], lc, 0 ]
+    pts["vB_3"] = [ origin[0]+w1+Li1, origin[1]+Li2, origin[2], lc, 0 ]
+    pts["vB_4"] = [ origin[0]+w1    , origin[1]+Li2, origin[2], lc, 0 ]
     for ik in [ i+1 for i in range(4) ]:
         key1, key2     = "xi{0}".format(ik), "xo{0}".format(ik)
         pts[key1][tag_] = gmsh.model.occ.addPoint( pts[key1][x_], pts[key1][y_], pts[key1][z_], \
