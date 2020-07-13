@@ -28,19 +28,19 @@ def generate__sectorShape( radius=None, origin=[0.0,0.0], th1=0.0, th2=180.0, zo
     initNum       = 1
     x_, y_        = 0, 1
     pth1, pth2    = th1/180.0*np.pi, th2/180.0*np.pi
-    xp1           = [ radius*np.cos(pth1), radius*np.sin(pth1) ]
-    xp2           = [ radius*np.cos(pth2), radius*np.sin(pth2) ]
+    xp1           = [ origin[x_]+radius*np.cos(pth1), origin[y_]+radius*np.sin(pth1) ]
+    xp2           = [ origin[x_]+radius*np.cos(pth2), origin[y_]+radius*np.sin(pth2) ]
     pts["OP"]     = [ origin[x_], origin[y_], zoffset, lc, initNum ]
     pts["P1"]     = [    xp1[x_],    xp1[y_], zoffset, lc, initNum ]
     pts["P2"]     = [    xp2[x_],    xp2[y_], zoffset, lc, initNum ]
     if ( obtuse ):
         ang       = 0.5*(pth2-pth1) + pth1
         if   (  ( th2-th1 == 180.0 ) & ( side=="+" ) ):
-            xp3   = [ + radius*np.cos( ang ), + radius*np.sin( ang ) ]
+            xp3   = [ origin[x_] + radius*np.cos( ang ), origin[y_] + radius*np.sin( ang ) ]
         elif (  ( th2-th1 == 180.0 ) & ( side=="-" ) ):
-            xp3   = [ - radius*np.cos( ang ), - radius*np.sin( ang ) ]
+            xp3   = [ origin[x_] - radius*np.cos( ang ), origin[y_] - radius*np.sin( ang ) ]
         else:
-            xp3   = [ + radius*np.cos( ang ), + radius*np.sin( ang ) ]
+            xp3   = [ origin[x_] + radius*np.cos( ang ), origin[y_] + radius*np.sin( ang ) ]
         pts["P3"] = [ xp3[x_], xp3[y_], zoffset, lc, initNum ]
     for key in list( pts.keys() ):
         pt              = pts[key]
