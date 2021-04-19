@@ -1,6 +1,7 @@
 import sys
 import numpy         as np
-import gmsh_api.gmsh as gmsh
+import gmsh
+# import gmsh_api.gmsh as gmsh
 
 
 # ========================================================= #

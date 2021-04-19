@@ -6,7 +6,7 @@ import gmsh_api.gmsh as gmsh
 # ===  generate quad shape                              === #
 # ========================================================= #
 def generate__quadShape( lc=0.1, x1=None, x2=None, x3=None, x4=None, \
-                         extrude_delta=None, defineVolu=False ):
+                         extrude_delta=None, defineVolu=False, recombine=False ):
     # ------------------------------------------------- #
     # --- [0] Arguments                             --- #
     # ------------------------------------------------- #
@@ -51,7 +51,8 @@ def generate__quadShape( lc=0.1, x1=None, x2=None, x3=None, x4=None, \
     #  -- [2-4] generate volume                     --  #
     if ( defineVolu ):
         ret            = gmsh.model.occ.extrude( [ (surfPhys,surf["quad"]) ], extrude_delta[0], \
-                                                 extrude_delta[1], extrude_delta[2] )
+                                                 extrude_delta[1], extrude_delta[2], \
+                                                 recombine=recombine )
         volu["quad"]   = ret[1][1]
     
     # ------------------------------------------------- #

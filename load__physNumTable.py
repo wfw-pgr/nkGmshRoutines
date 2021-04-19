@@ -1,5 +1,6 @@
 import sys
-import gmsh_api.gmsh as gmsh
+# import gmsh_api.gmsh as gmsh
+import gmsh
 
 # ========================================================= #
 # ===  Load Physical Number Table for Gmsh              === #
@@ -33,7 +34,7 @@ def load__physNumTable( inpFile=None, pts={}, line={}, surf={}, volu={}, \
     for row in table:
         if ( len( row.strip() ) == 0 ):
             continue
-        if ( ( row[0] != "#" ) ):
+        if ( ( ( row.strip() )[0] != "#" ) ):
             # -- [3-1] vname, vtype, venum  -- #
             vname =      ( row.split() )[0]
             vtype =      ( row.split() )[1]
@@ -89,8 +90,9 @@ def load__physNumTable( inpFile=None, pts={}, line={}, surf={}, volu={}, \
         voluPhys[key] = gmsh.model.addPhysicalGroup( voluDim, voluPhysTable[key], \
                                                      tag=int(key) )
 
-    print( surfPhys )
-    print( surfPhysTable )
+    # ------------------------------------------------- #
+    # --- [5] return                                --- #
+    # ------------------------------------------------- #
     ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
             "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys }
     return( ret )
