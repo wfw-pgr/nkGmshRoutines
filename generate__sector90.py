@@ -6,8 +6,8 @@ import gmsh
 # ========================================================= #
 # ===  generate Sector Shape ( ougi - gata ) 90 degree  === #
 # ========================================================= #
-def generate__sector90( lc=None, r1=0.0, r2=1.0, quadrant=1, \
-                        origin=[0.0,0.0], zoffset=0.0, height=1.0, \
+def generate__sector90( lc=None, r1=0.0, r2=1.0, quadrant=1, recombine=False, \
+                        origin=[0.0,0.0], zoffset=0.0, height=1.0, numElements=[], \
                         defineSurf=False, defineVolu=False ):
 
     # ------------------------------------------------- #
@@ -82,7 +82,8 @@ def generate__sector90( lc=None, r1=0.0, r2=1.0, quadrant=1, \
         LineLoopGroup  = gmsh.model.occ.addCurveLoop( LineLoop )
         surf["sector"] = gmsh.model.occ.addPlaneSurface( [ LineLoopGroup ] )
     if ( defineVolu ):
-        ret            = gmsh.model.occ.extrude( [ (2,surf["sector"])], 0.0, 0.0, height )
+        ret            = gmsh.model.occ.extrude( [ (2,surf["sector"])], 0.0, 0.0, height, \
+                                                 numElements=numElements, recombine=recombine )
         volu["sector"] = ret[1][1]
         
     # ------------------------------------------------- #
