@@ -90,7 +90,6 @@ def load__meshconfig( meshFile=None, pts={}, line={}, surf={}, volu={}, loadonly
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
     if ( meshFile is None ): sys.exit( "[load__meshconfig] meshFile == ???" )
-    ptsDim, 
     
     # ------------------------------------------------- #
     # --- [2] Data Load                             --- #
