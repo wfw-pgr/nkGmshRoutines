@@ -22,8 +22,8 @@ def define__ports( inpFile="dat/ports.conf" ):
     for param in params:
         #  -- [2-1] object type    --  #
         if ( param["type"].lower() == "pipe" ):
-            ret = gmsh.model.occ.addCylinder( -0.5*param["wx"], 0.0, 0.0, \
-                                              +1.0*param["wx"], 0.0, 0.0, param["r1"] )
+            ret = gmsh.model.occ.addCylinder( 0.0, 0.0, -0.5*param["wz"], \
+                                              0.0, 0.0, +1.0*param["wz"], param["r1"] )
         if ( param["type"].lower() == "cone" ):
             ret = gmsh.model.occ.addCOne    ( -0.5*param["wx"], 0.0, 0.0, \
                                               +1.0*param["wx"], 0.0, 0.0, param["r1"], param["r2"] )
@@ -52,13 +52,13 @@ if ( __name__=="__main__" ):
     gmsh.option.setNumber( "General.Terminal", 1 )
     gmsh.model.add( "model" )
 
-    portFile = "dat/ports.conf"
+    portFile = "test/ports.conf"
     define__ports( inpFile=portFile )
     
     gmsh.model.occ.synchronize()
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", 0.1 )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", 0.1 )
     gmsh.model.mesh.generate(3)
-    gmsh.write( "msh/model.msh" )
+    gmsh.write( "test/ports.msh" )
     gmsh.finalize()
     

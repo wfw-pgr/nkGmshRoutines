@@ -6,9 +6,7 @@ import gmsh
 # ========================================================= #
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
-def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None ):
-
-    voluDim = 3
+def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, physFile=None ):
 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
@@ -18,11 +16,18 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None ):
         if ( meshFile is None ):
             sys.exit( "[assign__meshsize] give meshFile or, volumes_list & meshsize_list" )
         else:
-            meshconfig    = load__meshconfig( meshFile=meshFile )
-            keys          = list( ( meshconfig["volu"] ).keys() )
-            volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
-            meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
+            if ( physFile is None ):
+                meshconfig    = load__meshconfig( meshFile=meshFile )
+                keys          = list( ( meshconfig["volu"] ).keys() )
+                volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
+                meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
+            else:
+                meshconfig    = load__mesh_and_phys_config( meshFile=meshFile, physFile=physFile )
+                keys          = list( ( meshconfig["volu"] ).keys() )
+                volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
+                meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
 
+                
     # ------------------------------------------------- #
     # --- [2] define each mesh field                --- #
     # ------------------------------------------------- #
@@ -39,7 +44,13 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None ):
     gmsh.model.mesh.field.setAsBackgroundMesh( totalfield )
 
     # ------------------------------------------------- #
-    # --- [4] return                                --- #
+    # --- [4] define Min Max size                   --- #
+    # ------------------------------------------------- #
+    gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", np.min( meshsize_list ) )
+    gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", np.max( meshsize_list ) )
+    
+    # ------------------------------------------------- #
+    # --- [5] return                                --- #
     # ------------------------------------------------- #
     ret = { "meshsize_list":meshsize_list, "volumes_list":volumes_list, \
             "field_list":fieldlist }
@@ -105,6 +116,7 @@ def load__meshconfig( meshFile=None, pts={}, line={}, surf={}, volu={}, loadonly
     surfPhysTable = {}
     voluPhysTable = {}
     meshsizeTable = {}
+    vnames        = []
 
     for row in table:
         if ( len( row.strip() ) == 0 ):
@@ -153,12 +165,12 @@ def load__meshconfig( meshFile=None, pts={}, line={}, surf={}, volu={}, loadonly
 
         if ( not( vname in meshsizeTable ) ):
             meshsizeTable[vname] = vmesh
+            vnames.append( vname )
         else:
             print( "[load__meshconfig] duplicated keys :: {0}  [ERROR] ".format( vname ) )
             sys.exit()
 
-    keys         = list( meshsizeTable.keys() )
-    meshsizelist = [ meshsizeTable[key] for key in keys ]
+    meshsizelist = [ meshsizeTable[key] for key in vnames ]
 
 
     # ------------------------------------------------- #
@@ -184,8 +196,142 @@ def load__meshconfig( meshFile=None, pts={}, line={}, surf={}, volu={}, loadonly
     # ------------------------------------------------- #
     ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
             "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
-            "meshsize":meshsizeTable, "keys":keys, "meshsizelist":meshsizelist }
+            "meshsize":meshsizeTable, "keys":vnames, "meshsizelist":meshsizelist }
     return( ret )
+
+
+# ========================================================= #
+# ===  load mesh and physical number config             === #
+# ========================================================= #
+def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, surf={}, volu={}, loadonly=False, \
+                                ptsPhys={}, linePhys={}, surfPhys={}, voluPhys={} ):
+
+    ptsDim, lineDim, surfDim, voluDim = 0, 1, 2, 3
+    
+    # ------------------------------------------------- #
+    # --- [1] Arguments                             --- #
+    # ------------------------------------------------- #
+    if ( meshFile is None ): sys.exit( "[load__mesh_and_phys_config] meshFile == ???" )
+    if ( physFile is None ): sys.exit( "[load__mesh_and_phys_config] physFile == ???" )
+    
+    # ------------------------------------------------- #
+    # --- [2] Data Load                             --- #
+    # ------------------------------------------------- #
+    with open( meshFile ) as f:
+        meshtable = f.readlines()
+    with open( physFile ) as f:
+        phystable = f.readlines()
+
+    # ------------------------------------------------- #
+    # --- [3] generate Dictionary ( physical Num )  --- #
+    # ------------------------------------------------- #
+    ptsPhysTable  = {}
+    linePhysTable = {}
+    surfPhysTable = {}
+    voluPhysTable = {}
+    physNums      = {}
+    vnames        = []
+
+    for row in phystable:
+        if ( len( row.strip() ) == 0 ):
+            continue
+        if ( (row.strip())[0] == "#" ):
+            continue
+        # -- [3-1] vname, vtype, venum  -- #
+        vname =        ( row.split() )[0]
+        vtype =        ( row.split() )[1]
+        venti =   int( ( row.split() )[2] )
+        vphys =        ( row.split() )[3]
+
+        # -- [3-2] vtype check          -- #
+        if   ( vtype.lower() == 'pts'    ):
+            pts [vname]     = venti
+            if ( vphys in ptsPhysTable ):
+                ( ptsPhysTable[vphys] ).append( venti )
+            else:
+                ptsPhysTable[vphys] = [ venti ]
+            
+        elif ( vtype.lower() == 'line'   ):
+            line[vname]      = venti
+            if ( vphys in linePhysTable ):
+                ( linePhysTable[vphys] ).append( venti )
+            else:
+                linePhysTable[vphys] = [ venti ]
+
+        elif ( vtype.lower() == 'surf'   ):
+            surf[vname]      = venti
+            if ( vphys in surfPhysTable ):
+                ( surfPhysTable[vphys] ).append( venti )
+            else:
+                surfPhysTable[vphys] = [ venti ]
+                
+        elif ( vtype.lower() == 'volu'   ):
+            volu[vname]      = venti
+            if ( vphys in voluPhysTable ):
+                ( voluPhysTable[vphys] ).append( venti )
+            else:
+                voluPhysTable[vphys] = [ venti ]
+                
+        else:
+            print("[ERROR] Unknown Object in load__mesh_and_phys_config :: {0}".format(physFile) )
+            sys.exit()
+
+        physNums[vname] = vphys
+        vnames.append( vname )
+
+
+    # ------------------------------------------------- #
+    # --- [4] register physical number              --- #
+    # ------------------------------------------------- #
+
+    if ( loadonly is False ):
+        for key in list(  ptsPhysTable.keys() ):
+            ptsPhys[key]  = gmsh.model.addPhysicalGroup( ptsDim, ptsPhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( linePhysTable.keys() ):
+            linePhys[key] = gmsh.model.addPhysicalGroup( lineDim, linePhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( surfPhysTable.keys() ):
+            surfPhys[key] = gmsh.model.addPhysicalGroup( surfDim, surfPhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( voluPhysTable.keys() ):
+            voluPhys[key] = gmsh.model.addPhysicalGroup( voluDim, voluPhysTable[key], \
+                                                         tag=int(key) )
+
+    # ------------------------------------------------- #
+    # --- [3] generate Dictionary ( mesh )          --- #
+    # ------------------------------------------------- #
+
+    meshsizeTable = {}
+    physMeshTable = {}
+
+    for row in meshtable:
+        if ( len( row.strip() ) == 0 ):
+            continue
+        if ( (row.strip())[0] == "#" ):
+            continue
+        # -- [3-1] vname, vtype, venum  -- #
+        vname =        ( row.split() )[0]
+        vphys =        ( row.split() )[1]
+        vmesh = float( ( row.split() )[2] )
+
+        if ( not( vphys in physMeshTable ) ):
+            physMeshTable[vphys] = vmesh
+        else:
+            print( "[load__meshconfig] duplicated keys :: {0}  [ERROR] ".format( vname ) )
+            sys.exit()
+
+    meshsizeTable = { key: physMeshTable[ physNums[key] ] for key in vnames }
+    meshsizelist  = [ physMeshTable[ physNums[key] ]      for key in vnames ]
+            
+    # ------------------------------------------------- #
+    # --- [5] return                                --- #
+    # ------------------------------------------------- #
+    ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
+            "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
+            "meshsize":meshsizeTable, "keys":vnames, "meshsizelist":meshsizelist }
+    return( ret )
+
 
 
 # ========================================================= #
@@ -207,8 +353,10 @@ if ( __name__=="__main__" ):
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
 
-    meshFile = "test/mesh.conf"
-    assign__meshsize( meshFile=meshFile )
+    # meshFile = "test/mesh.conf"
+    physFile = "test/phys_only.conf"
+    meshFile = "test/mesh_only.conf"
+    assign__meshsize( meshFile=meshFile, physFile=physFile )
     gmsh.model.occ.synchronize()
 
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", 0.01 )

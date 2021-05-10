@@ -1,11 +1,12 @@
 import sys
 import numpy         as np
-import gmsh_api.gmsh as gmsh
+import gmsh
+# import gmsh_api.gmsh as gmsh
 
 # ========================================================= #
 # ===  generate quad shape                              === #
 # ========================================================= #
-def generate__quadShape( lc=0.1, x1=None, x2=None, x3=None, x4=None, \
+def generate__quadShape( lc=0.0, x1=None, x2=None, x3=None, x4=None, \
                          extrude_delta=None, defineVolu=False, recombine=False ):
     # ------------------------------------------------- #
     # --- [0] Arguments                             --- #

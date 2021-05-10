@@ -8,7 +8,7 @@ import gmsh
 # ========================================================= #
 def generate__sector90( lc=None, r1=0.0, r2=1.0, quadrant=1, recombine=False, \
                         origin=[0.0,0.0], zoffset=0.0, height=1.0, numElements=[], \
-                        defineSurf=False, defineVolu=False ):
+                        defineSurf=False, defineVolu=False, hexa=False ):
 
     # ------------------------------------------------- #
     # --- [1] Preparation                           --- #
