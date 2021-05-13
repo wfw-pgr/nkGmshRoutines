@@ -27,6 +27,23 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
                 volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
                 meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
 
+
+    # ------------------------------------------------- #
+    # --- [2] check entity numbers                  --- #
+    # ------------------------------------------------- #
+    allEntities = gmsh.model.getEntities(3)
+    allEntities = [ int(dimtag[1]) for dimtag in allEntities ]
+    missing     = list( set( volumes_list ) - set( allEntities  ) )
+    remains     = list( set( allEntities  ) - set( volumes_list ) )
+    print( "[assign__meshsize.py] listed volume nums :: {0} ".format( volumes_list ) )
+    print( "[assign__meshsize.py] all elements       :: {0} ".format( allEntities  ) )
+    print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
+
+    if ( len( missing ) > 0 ):
+        print( "[assign__meshsize.py] missing            :: {0} ".format( missing      ) )
+        print( "[assign__meshsize.py] missing Entity Error STOP " )
+        sys.exit()
+    
                 
     # ------------------------------------------------- #
     # --- [2] define each mesh field                --- #

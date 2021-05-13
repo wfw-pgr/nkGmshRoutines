@@ -24,12 +24,12 @@ def fuse__listed( inpFile="dat/fuse.conf", dim=3 ):
         ent = entities[key]
         tag = fuseNums[key]
         if   ( len(ent) == 1 ):
-            target = [ (dim,ent[0]) ]
-            tools  = [ (dim,ent[0]) ]
+            targets = [ (dim,ent[0]) ]
+            tools   = [ (dim,ent[0]) ]
         elif ( len(ent)  > 1 ):
-            target = [ (dim,ent[0]) ]
-            tools  = [ (dim,entity) for entity in ent[1:] ]
-        gmsh.model.occ.fuse( target, tools, tag=tag )
+            targets = [ (dim,ent[0]) ]
+            tools   = [ (dim,entity) for entity in ent[1:] ]
+        gmsh.model.occ.fuse( targets, tools, tag=tag )
     return()
 
 
