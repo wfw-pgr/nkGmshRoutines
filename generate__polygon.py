@@ -1,11 +1,12 @@
 import sys
 import numpy         as np
-import gmsh_api.gmsh as gmsh
+# import gmsh_api.gmsh as gmsh
+import gmsh
 
 # ========================================================= #
 # ===  generate polygon                                 === #
 # ========================================================= #
-def generate__polygon( lc=0.1, vertex=None, key="poly", \
+def generate__polygon( lc=0.0, vertex=None, key="poly", \
                        extrude_delta=None, defineVolu=False ):
     # ------------------------------------------------- #
     # --- [0] Arguments                             --- #
