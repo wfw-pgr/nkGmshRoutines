@@ -6,7 +6,8 @@ import gmsh
 # ========================================================= #
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
-def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, physFile=None ):
+def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, physFile=None, \
+                      target="volu" ):
 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
@@ -18,25 +19,25 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
         else:
             if ( physFile is None ):
                 meshconfig    = load__meshconfig( meshFile=meshFile )
-                keys          = list( ( meshconfig["volu"] ).keys() )
-                volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
+                keys          = list( ( meshconfig[target] ).keys() )
+                volumes_list  = [ (meshconfig[target]    )[key] for key in keys ]
                 meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
             else:
                 meshconfig    = load__mesh_and_phys_config( meshFile=meshFile, physFile=physFile )
-                keys          = list( ( meshconfig["volu"] ).keys() )
-                volumes_list  = [ (meshconfig["volu"]    )[key] for key in keys ]
+                keys          = list( ( meshconfig[target] ).keys() )
+                volumes_list  = [ (meshconfig[target]    )[key] for key in keys ]
                 meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
-
 
     # ------------------------------------------------- #
     # --- [2] check entity numbers                  --- #
     # ------------------------------------------------- #
-    allEntities = gmsh.model.getEntities(3)
+    itarget   = ( ["pts","line","surf","volu"] ).index( target )
+    allEntities = gmsh.model.getEntities(itarget)
     allEntities = [ int(dimtag[1]) for dimtag in allEntities ]
     missing     = list( set( volumes_list ) - set( allEntities  ) )
     remains     = list( set( allEntities  ) - set( volumes_list ) )
     print( "[assign__meshsize.py] listed volume nums :: {0} ".format( volumes_list ) )
-    print( "[assign__meshsize.py] all elements       :: {0} ".format( allEntities  ) )
+    print( "[assign__meshsize.py] all Entities       :: {0} ".format( allEntities  ) )
     print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
 
     if ( len( missing ) > 0 ):
@@ -50,7 +51,8 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     # ------------------------------------------------- #
     fieldlist = []
     for ik,ms in enumerate( meshsize_list ):
-        ret = assign__meshsize_on_each_volume( volume_num=volumes_list[ik], meshsize=ms )
+        ret = assign__meshsize_on_each_volume( volume_num=volumes_list[ik], meshsize=ms, \
+                                               target=target )
         fieldlist.append( ret[1] )
 
     # ------------------------------------------------- #
@@ -63,6 +65,7 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     # ------------------------------------------------- #
     # --- [4] define Min Max size                   --- #
     # ------------------------------------------------- #
+    print( meshsize_list )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", np.min( meshsize_list ) )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", np.max( meshsize_list ) )
     
@@ -77,14 +80,14 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
 # ========================================================= #
 # ===  assigne meshsize onto volume Entities            === #
 # ========================================================= #
-def assign__meshsize_on_each_volume( volume_num=None, meshsize=None ):
+def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="volu" ):
 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
     if ( volume_num is None ): sys.exit( "[assign__meshsize_on_each_volume] volume_num == ??? " )
     if ( meshsize   is None ): sys.exit( "[assign__meshsize_on_each_volume] meshsize   == ??? " )
-    dimtags_v = [(3,volume_num)]
+    itarget   = ( ["pts","line","surf","volu"] ).index( target )
     
     # ------------------------------------------------- #
     # --- [2] define MathEval Field                 --- #
@@ -95,14 +98,28 @@ def assign__meshsize_on_each_volume( volume_num=None, meshsize=None ):
     # ------------------------------------------------- #
     # --- [3] define Restrict Field                 --- #
     # ------------------------------------------------- #
-    dimtags_s = gmsh.model.getBoundary( dimtags_v )
-    dimtags_l = gmsh.model.getBoundary( dimtags_s, combined=False, oriented=False )
-    faces     = [ int( dimtag[1] ) for dimtag in dimtags_s ]
-    edges     = [ int( dimtag[1] ) for dimtag in dimtags_l ]
-    fieldrest = gmsh.model.mesh.field.add( "Restrict" )
-    gmsh.model.mesh.field.setNumber ( fieldrest, "IField"   , fieldmath )
-    gmsh.model.mesh.field.setNumbers( fieldrest, "FacesList", faces     )
-    gmsh.model.mesh.field.setNumbers( fieldrest, "EdgesList", edges     )
+    if   ( target == "volu" ):
+        dimtags_v = [(itarget,volume_num)]
+        dimtags_s = gmsh.model.getBoundary( dimtags_v )
+        dimtags_l = gmsh.model.getBoundary( dimtags_s, combined=False, oriented=False )
+        faces     = [ int( dimtag[1] ) for dimtag in dimtags_s ]
+        edges     = [ int( dimtag[1] ) for dimtag in dimtags_l ]
+        fieldrest = gmsh.model.mesh.field.add( "Restrict" )
+        gmsh.model.mesh.field.setNumber ( fieldrest, "IField"   , fieldmath )
+        gmsh.model.mesh.field.setNumbers( fieldrest, "FacesList", faces     )
+        gmsh.model.mesh.field.setNumbers( fieldrest, "EdgesList", edges     )
+    elif ( target == "surf" ):
+        dimtags_s = [(itarget,volume_num)]
+        dimtags_l = gmsh.model.getBoundary( dimtags_s, combined=False, oriented=False )
+        faces     = [ int( dimtag[1] ) for dimtag in dimtags_s ]
+        edges     = [ int( dimtag[1] ) for dimtag in dimtags_l ]
+        fieldrest = gmsh.model.mesh.field.add( "Restrict" )
+        gmsh.model.mesh.field.setNumber ( fieldrest, "IField"   , fieldmath )
+        gmsh.model.mesh.field.setNumbers( fieldrest, "FacesList", faces     )
+        gmsh.model.mesh.field.setNumbers( fieldrest, "EdgesList", edges     )
+    else:
+        print( "[assign__meshsize_on_each_volume] ONLY volu & surf is implemented..." )
+        sys.exit()
     return( (fieldmath, fieldrest) )
 
 
