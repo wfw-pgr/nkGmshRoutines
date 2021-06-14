@@ -65,7 +65,6 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     # ------------------------------------------------- #
     # --- [4] define Min Max size                   --- #
     # ------------------------------------------------- #
-    print( meshsize_list )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", np.min( meshsize_list ) )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", np.max( meshsize_list ) )
     
@@ -354,9 +353,26 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
         else:
             print( "[load__meshconfig] duplicated keys :: {0}  [ERROR] ".format( vname ) )
             sys.exit()
+    meshConf_has  = set( list( physMeshTable.keys() ) )
+    physNums_has  = set( list( physNums.values() ) )
+    NoMeshConstra = list( physNums_has - meshConf_has )
+    NoPhysDefinit = list( meshConf_has - physNums_has )
+    CommonPhysNum = list( meshConf_has & physNums_has )
+    
+    if ( len( NoMeshConstra ) > 0 ):
+        print()
+        print( "[assign__meshsize.py] No Mesh Constraints   :: {0} ".format( NoMeshConstra ) )
+        print()
+    if ( len( NoPhysDefinit ) > 0 ):
+        print()
+        print( "[assign__meshsize.py] No PhysNum Definition :: {0} ".format( NoPhysDefinit ) )
+        print()
+        sys.exit()
 
-    meshsizeTable = { key: physMeshTable[ physNums[key] ] for key in vnames }
-    meshsizelist  = [ physMeshTable[ physNums[key] ]      for key in vnames ]
+
+    vnames_       = [ key for key in vnames if physNums[key] in CommonPhysNum ]
+    meshsizeTable = { key: physMeshTable[ physNums[key] ] for key in vnames_ }
+    meshsizelist  = [ physMeshTable[ physNums[key] ]      for key in vnames_ ]
             
     # ------------------------------------------------- #
     # --- [5] return                                --- #
