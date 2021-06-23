@@ -270,47 +270,58 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
             continue
         if ( (row.strip())[0] == "#" ):
             continue
-        # -- [3-1] vname, vtype, venum  -- #
-        vname =        ( row.split() )[0]
-        vtype =        ( row.split() )[1]
-        venti =   int( ( row.split() )[2] )
-        vphys =        ( row.split() )[3]
-
-        # -- [3-2] vtype check          -- #
-        if   ( vtype.lower() == 'pts'    ):
-            pts [vname]     = venti
-            if ( vphys in ptsPhysTable ):
-                ( ptsPhysTable[vphys] ).append( venti )
-            else:
-                ptsPhysTable[vphys] = [ venti ]
+        venti = row.split()[2]
+        if   ( len( venti.split("-") ) >= 2 ):
+            ifrom = int( ( venti.split("-") )[0] )
+            iuntl = int( ( venti.split("-") )[1] )
+            n_add = "_{0}"
+        elif ( len( venti.split("-") ) == 1 ):
+            ifrom = int( venti )
+            iuntl = int( venti )
+            n_add = ""
             
-        elif ( vtype.lower() == 'line'   ):
-            line[vname]      = venti
-            if ( vphys in linePhysTable ):
-                ( linePhysTable[vphys] ).append( venti )
-            else:
-                linePhysTable[vphys] = [ venti ]
-
-        elif ( vtype.lower() == 'surf'   ):
-            surf[vname]      = venti
-            if ( vphys in surfPhysTable ):
-                ( surfPhysTable[vphys] ).append( venti )
-            else:
-                surfPhysTable[vphys] = [ venti ]
+        for venti in range( ifrom, iuntl+1 ):
+            
+            # -- [3-1] vname, vtype, venum  -- #
+            vname =        ( row.split() )[0] + n_add.format( venti )
+            vtype =        ( row.split() )[1]
+            vphys =        ( row.split() )[3]
+            
+            # -- [3-2] vtype check          -- #
+            if   ( vtype.lower() == 'pts'    ):
+                pts [vname]     = venti
+                if ( vphys in ptsPhysTable ):
+                    ( ptsPhysTable[vphys] ).append( venti )
+                else:
+                    ptsPhysTable[vphys] = [ venti ]
+            
+            elif ( vtype.lower() == 'line'   ):
+                line[vname]      = venti
+                if ( vphys in linePhysTable ):
+                    ( linePhysTable[vphys] ).append( venti )
+                else:
+                    linePhysTable[vphys] = [ venti ]
+                    
+            elif ( vtype.lower() == 'surf'   ):
+                surf[vname]      = venti
+                if ( vphys in surfPhysTable ):
+                    ( surfPhysTable[vphys] ).append( venti )
+                else:
+                    surfPhysTable[vphys] = [ venti ]
+                    
+            elif ( vtype.lower() == 'volu'   ):
+                volu[vname]      = venti
+                if ( vphys in voluPhysTable ):
+                    ( voluPhysTable[vphys] ).append( venti )
+                else:
+                    voluPhysTable[vphys] = [ venti ]
                 
-        elif ( vtype.lower() == 'volu'   ):
-            volu[vname]      = venti
-            if ( vphys in voluPhysTable ):
-                ( voluPhysTable[vphys] ).append( venti )
             else:
-                voluPhysTable[vphys] = [ venti ]
-                
-        else:
-            print("[ERROR] Unknown Object in load__mesh_and_phys_config :: {0}".format(physFile) )
-            sys.exit()
+                print("[ERROR] Unknown Object in load__mesh_and_phys_config :: {0}".format(physFile) )
+                sys.exit()
 
-        physNums[vname] = vphys
-        vnames.append( vname )
+            physNums[vname] = vphys
+            vnames.append( vname )
 
 
     # ------------------------------------------------- #
