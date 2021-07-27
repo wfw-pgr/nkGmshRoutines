@@ -42,7 +42,8 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
 
     if ( len( missing ) > 0 ):
         print( "[assign__meshsize.py] missing            :: {0} ".format( missing      ) )
-        gmsh.write( "resume.geo_unrolled" )
+        print( "[assign__meshsize.py] aborting           :: current.geo_unrolled "       )
+        gmsh.write( "current.geo_unrolled" )
         print( "[assign__meshsize.py] missing Entity Error STOP " )
         sys.exit()
     
@@ -271,17 +272,22 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
             continue
         if ( (row.strip())[0] == "#" ):
             continue
-        venti = row.split()[2]
-        if   ( len( venti.split("-") ) >= 2 ):
-            ifrom = int( ( venti.split("-") )[0] )
-            iuntl = int( ( venti.split("-") )[1] )
-            n_add = "_{0}"
-        elif ( len( venti.split("-") ) == 1 ):
-            ifrom = int( venti )
-            iuntl = int( venti )
-            n_add = ""
+        str_venti  = row.split()[2]
+        venti_list = split__values( string=str_venti )
+        venti_list = [ int( venti ) for venti in venti_list ]
+        n_add      = "_{0}"
+        # -------- old ------------------------------- #
+        # if   ( len( venti.split("-") ) >= 2 ):
+        #     ifrom = int( ( venti.split("-") )[0] )
+        #     iuntl = int( ( venti.split("-") )[1] )
+        #     n_add = "_{0}"
+        # elif ( len( venti.split("-") ) == 1 ):
+        #     ifrom = int( venti )
+        #     iuntl = int( venti )
+        #     n_add = ""
+        # -------- old ------------------------------- #
             
-        for venti in range( ifrom, iuntl+1 ):
+        for venti in venti_list:
             
             # -- [3-1] vname, vtype, venum  -- #
             vname =        ( row.split() )[0] + n_add.format( venti )
@@ -393,6 +399,38 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
             "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
             "meshsize":meshsizeTable, "keys":vnames, "meshsizelist":meshsizelist }
     return( ret )
+
+
+
+
+# ========================================================= #
+# ===  split__values.py                                 === #
+# ========================================================= #
+
+def split__values( string=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] arguments                             --- #
+    # ------------------------------------------------- #
+    if ( string is None ): sys.exit( "[split__values] string == ???" )
+
+    # ------------------------------------------------- #
+    # --- [2] separation                            --- #
+    # ------------------------------------------------- #
+    #  -- [2-1] comma separation                    --  #
+    cs_list = string.split( "," )
+
+    #  -- [2-2] hyphone separation                  --  #
+    hp_list = []
+    for sval in cs_list:
+        spl = sval.split("-")
+        if   ( len( spl ) == 1 ):
+            hp_list += spl
+        elif ( len( spl ) == 2 ):
+            hp_list += [ str(val) for val in range( int(spl[0]), int(spl[1])+1 ) ]
+        else:
+            sys.exit( "[split__values.py] illegal number of hyphone '-'. " )
+    return( hp_list )
 
 
 
