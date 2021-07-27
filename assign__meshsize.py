@@ -42,6 +42,7 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
 
     if ( len( missing ) > 0 ):
         print( "[assign__meshsize.py] missing            :: {0} ".format( missing      ) )
+        gmsh.write( "resume.geo_unrolled" )
         print( "[assign__meshsize.py] missing Entity Error STOP " )
         sys.exit()
     
