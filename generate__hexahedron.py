@@ -58,7 +58,6 @@ def generate__hexahedron( vertex=None, quad1=None, quad2=None, \
             verts      = [vert1[None,:],vert2[None,:],vert3[None,:],vert4[None,:]]
             vert_t     = np.concatenate( verts, axis=0 )
             volu[vkey] = gth.generate__tetrahedron( vertex=vert_t )
-    print( volu )
 
     # ------------------------------------------------- #
     # --- [4] fuse volumes                          --- #
@@ -70,7 +69,6 @@ def generate__hexahedron( vertex=None, quad1=None, quad2=None, \
         dimtags   = [ (voluDim,volu_num) for volu_num in volu_list ]
         target    = [ dimtags[0] ]
         tools     =   dimtags[1:]
-        print( target )
         ret       = gmsh.model.occ.fuse( target, tools )
     else:
         ret = None
