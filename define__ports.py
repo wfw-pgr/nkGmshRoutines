@@ -21,19 +21,25 @@ def define__ports( inpFile="dat/ports.conf" ):
     nums   = []
     for param in params:
         #  -- [2-1] object type    --  #
-        if ( param["type"].lower() == "pipe" ):
+        if ( param["type"].lower() == "pipe_x" ):
+            ret = gmsh.model.occ.addCylinder( -0.5*param["wx"], 0.0, 0.0, \
+                                              +1.0*param["wx"], 0.0, 0.0, param["r1"] )
+            
+        if ( param["type"].lower() == "pipe_z" ):
             ret = gmsh.model.occ.addCylinder( 0.0, 0.0, -0.5*param["wz"], \
                                               0.0, 0.0, +1.0*param["wz"], param["r1"] )
+
         if ( param["type"].lower() == "cone" ):
-            ret = gmsh.model.occ.addCOne    ( -0.5*param["wx"], 0.0, 0.0, \
+            ret = gmsh.model.occ.addCone    ( -0.5*param["wx"], 0.0, 0.0, \
                                               +1.0*param["wx"], 0.0, 0.0, param["r1"], param["r2"] )
         if ( param["type"].lower() == "cube" ):
             ret = gmsh.model.occ.addBox     ( -0.5*param["wx"], -0.5*param["wy"], -0.5*param["wz"], \
                                               +1.0*param["wx"], +1.0*param["wy"], +1.0*param["wz"], )
         #  -- [2-2] rotate object  --  #
-        ptheta     = param["theta"] / 180.0 * np.pi
+        ptheta     = param["th_rot"] / 180.0 * np.pi
         gmsh.model.occ.rotate( [(3,ret)], 0,0,0, 0,0,1, ptheta )
         #  -- [2-3] translate      --  #
+        ptheta     = param["th_pos"] / 180.0 * np.pi
         dx, dy, dz = param["r_pos"]*np.cos( ptheta ), param["r_pos"]*np.sin( ptheta ), 0.0
         dx, dy, dz = dx+param["dx"], dy+param["dy"], dz+param["dz"]
         gmsh.model.occ.translate( [(3,ret)], dx, dy, dz )
