@@ -1,4 +1,4 @@
-import os, sys, re
+import os, sys
 import numpy         as np
 # import gmsh_api.gmsh as gmsh
 import gmsh
@@ -20,18 +20,13 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
             if ( physFile is None ):
                 meshconfig    = load__meshconfig( meshFile=meshFile )
                 keys          = list( ( meshconfig[target] ).keys() )
-                volumes_list  = [ (meshconfig[target]     )[key] for key in keys ]
+                volumes_list  = [ (meshconfig[target]    )[key] for key in keys ]
                 meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
             else:
-                meshconfig     = load__mesh_and_phys_config( meshFile=meshFile, physFile=physFile )
-                keys           = list( ( meshconfig[target] ).keys() )
-                volumes_list   = [ (meshconfig[target]     )[key] for key in keys ]
-                meshsize_list1 = [ (meshconfig["meshsize1"])[key] for key in keys ]
-                meshsize_list2 = [ (meshconfig["meshsize2"])[key] for key in keys ]
-                meshTypes      = [ (meshconfig["meshTypes"] )[key] for key in keys ]
-                mathEvals      = [ (meshconfig["mathEvals"] )[key] for key in keys ]
-                minMeshSize    = meshconfig["minMeshSize"]
-                maxMeshSize    = meshconfig["maxMeshSize"]
+                meshconfig    = load__mesh_and_phys_config( meshFile=meshFile, physFile=physFile )
+                keys          = list( ( meshconfig[target] ).keys() )
+                volumes_list  = [ (meshconfig[target]    )[key] for key in keys ]
+                meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
 
     # ------------------------------------------------- #
     # --- [2] check entity numbers                  --- #
@@ -46,12 +41,9 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
 
     if ( len( missing ) > 0 ):
-        print( "[assign__meshsize.py] missing            :: {0} ".format( missing    ) )
-        print( "[assign__meshsize.py] aborting           :: current.msh "       )
-        gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
-        gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
-        gmsh.model.mesh.generate(3)
-        gmsh.write( "current.msh" )
+        print( "[assign__meshsize.py] missing            :: {0} ".format( missing      ) )
+        print( "[assign__meshsize.py] aborting           :: current.geo_unrolled "       )
+        gmsh.write( "current.geo_unrolled" )
         print( "[assign__meshsize.py] missing Entity Error STOP " )
         sys.exit()
     
@@ -60,11 +52,9 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     # --- [2] define each mesh field                --- #
     # ------------------------------------------------- #
     fieldlist = []
-    for ik,vl in enumerate( volumes_list ):
-        ms  = [ meshsize_list1[ik], meshsize_list2[ik] ]
-        ret = assign__meshsize_on_each_volume( volume_num=vl, meshsize=ms, target=target, \
-                                               meshType  =meshTypes[ik], \
-                                               mathEval  =mathEvals[ik] )
+    for ik,ms in enumerate( meshsize_list ):
+        ret = assign__meshsize_on_each_volume( volume_num=volumes_list[ik], meshsize=ms, \
+                                               target=target )
         fieldlist.append( ret[1] )
 
     # ------------------------------------------------- #
@@ -77,13 +67,13 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
     # ------------------------------------------------- #
     # --- [4] define Min Max size                   --- #
     # ------------------------------------------------- #
-    gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
-    gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
+    gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", np.min( meshsize_list ) )
+    gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", np.max( meshsize_list ) )
     
     # ------------------------------------------------- #
     # --- [5] return                                --- #
     # ------------------------------------------------- #
-    ret = { "meshsize_list":meshsize_list1, "volumes_list":volumes_list, \
+    ret = { "meshsize_list":meshsize_list, "volumes_list":volumes_list, \
             "field_list":fieldlist }
     return( ret )
     
@@ -91,8 +81,7 @@ def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, phys
 # ========================================================= #
 # ===  assigne meshsize onto volume Entities            === #
 # ========================================================= #
-def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="volu", \
-                                     mathEval  =None, meshType=None ):
+def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="volu" ):
 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
@@ -104,22 +93,9 @@ def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="vol
     # ------------------------------------------------- #
     # --- [2] define MathEval Field                 --- #
     # ------------------------------------------------- #
-    if   ( meshType.lower() == "direct-math" ):
-        # use argument mathEval
-        pass
-    elif ( meshType.lower() == "constant" ):
-        mathEval   = "{0}".format( meshsize[0] )
-    elif ( meshType.lower() in [ "gradiant-x", "gradiant-y", "gradiant-z" ] ):
-        coord      = ( re.search( r"gradiant-(.)", meshType ) ).group(1)
-        icoord     = { "x":0, "y":1, "z":2 }[coord]
-        bb         = gmsh.model.occ.getBoundingBox( itarget, volume_num )
-        pMin,pMax  = bb[icoord], bb[icoord+3]
-        grad       = ( meshsize[1] - meshsize[0] ) / ( pMax - pMin )
-        mathEval   = "{0}+{1}*({2}-({3}))".format( meshsize[0], grad, coord, pMin )
-        
     fieldmath = gmsh.model.mesh.field.add( "MathEval" )
-    gmsh.model.mesh.field.setString( fieldmath, "F", mathEval )
-    
+    gmsh.model.mesh.field.setString( fieldmath, "F", "{0}".format( meshsize ) )
+
     # ------------------------------------------------- #
     # --- [3] define Restrict Field                 --- #
     # ------------------------------------------------- #
@@ -377,10 +353,8 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
     # --- [3] generate Dictionary ( mesh )          --- #
     # ------------------------------------------------- #
 
-    physMeshTable1 = {}
-    physMeshTable2 = {}
-    meshTypeTable_ = {}
-    mathEvalTable_ = {}
+    meshsizeTable = {}
+    physMeshTable = {}
 
     for row in meshtable:
         if ( len( row.strip() ) == 0 ):
@@ -388,27 +362,16 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
         if ( (row.strip())[0] == "#" ):
             continue
         # -- [3-1] vname, vtype, venum  -- #
-        vname  =        ( row.split() )[0]
-        vphys  =        ( row.split() )[1]
-        vtype  =        ( row.split() )[2]
-        vmesh1 = float( ( row.split() )[3] )
-        vmesh2 =        ( row.split() )[4]
-        veval  =        ( row.split() )[5]
+        vname =        ( row.split() )[0]
+        vphys =        ( row.split() )[1]
+        vmesh = float( ( row.split() )[2] )
 
-        try:
-            vmesh2 = float( vmesh2 )
-        except ValueError:
-            vmesh2 = None
-        
-        if ( not( vphys in physMeshTable1 ) ):
-            physMeshTable1[vphys] = vmesh1
-            physMeshTable2[vphys] = vmesh2
-            meshTypeTable_[vphys] = vtype
-            mathEvalTable_[vphys] = veval
+        if ( not( vphys in physMeshTable ) ):
+            physMeshTable[vphys] = vmesh
         else:
             print( "[load__meshconfig] duplicated keys :: {0}  [ERROR] ".format( vname ) )
             sys.exit()
-    meshConf_has  = set( list( physMeshTable1.keys() ) )
+    meshConf_has  = set( list( physMeshTable.keys() ) )
     physNums_has  = set( list( physNums.values() ) )
     NoMeshConstra = list( physNums_has - meshConf_has )
     NoPhysDefinit = list( meshConf_has - physNums_has )
@@ -424,25 +387,17 @@ def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, s
         print()
         sys.exit()
 
-    vnames_        = [ key for key in vnames if physNums[key] in CommonPhysNum ]
-    meshsizeTable1 = { key: physMeshTable1[ physNums[key] ] for key in vnames_ }
-    meshsizeTable2 = { key: physMeshTable2[ physNums[key] ] for key in vnames_ }
-    meshTypeTable  = { key: meshTypeTable_[ physNums[key] ] for key in vnames_ }
-    mathEvalTable  = { key: mathEvalTable_[ physNums[key] ] for key in vnames_ }
 
-    meshsizelist1  = [ value for value in list( meshsizeTable1.values() ) if value is not None ]
-    meshsizelist2  = [ value for value in list( meshsizeTable2.values() ) if value is not None ]
-    minMeshSize    = np.min( meshsizelist1 + meshsizelist2 )
-    maxMeshSize    = np.max( meshsizelist1 + meshsizelist2 )
-    
+    vnames_       = [ key for key in vnames if physNums[key] in CommonPhysNum ]
+    meshsizeTable = { key: physMeshTable[ physNums[key] ] for key in vnames_ }
+    meshsizelist  = [ physMeshTable[ physNums[key] ]      for key in vnames_ ]
+            
     # ------------------------------------------------- #
     # --- [5] return                                --- #
     # ------------------------------------------------- #
     ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
             "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
-            "meshsize1":meshsizeTable1, "meshsize2":meshsizeTable2, \
-            "mathEvals":mathEvalTable , "meshTypes" :meshTypeTable,
-            "minMeshSize":minMeshSize, "maxMeshSize":maxMeshSize, "keys":vnames }
+            "meshsize":meshsizeTable, "keys":vnames, "meshsizelist":meshsizelist }
     return( ret )
 
 
