@@ -116,6 +116,12 @@ def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="vol
         pMin,pMax  = bb[icoord], bb[icoord+3]
         grad       = ( meshsize[1] - meshsize[0] ) / ( pMax - pMin )
         mathEval   = "{0}+{1}*({2}-({3}))".format( meshsize[0], grad, coord, pMin )
+    elif ( meshType.lower() in [ "gradiant-rxy"] ):
+        bb         = gmsh.model.occ.getBoundingBox( itarget, volume_num )
+        rMin       = 0.0
+        rMax       = np.max( np.abs( [ bb[0], bb[1], bb[3], bb[4] ] ) )
+        grad       = ( meshsize[1] - meshsize[0] ) / ( rMax - rMin )
+        mathEval   = "{0}+{1}*(Sqrt(x*x+y*y)-{2})".format( meshsize[0], grad, rMin )
         
     fieldmath = gmsh.model.mesh.field.add( "MathEval" )
     gmsh.model.mesh.field.setString( fieldmath, "F", mathEval )

@@ -132,7 +132,7 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
-    gmsh.write( "msh/model.msh" )
+    gmsh.write( "test/example.msh" )
     gmsh.finalize()
     
 
