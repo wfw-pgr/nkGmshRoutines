@@ -182,39 +182,55 @@ def acquire__mathEval( volume_num=None, meshType=None, itarget=None, \
 
     elif ( meshType.lower() in [ "gradiant-r"] ):
         if ( len( mathEval.split(",") ) == 2 ):
-            rMin, rMax = ( float(val) for val in mathEval.split(",") )
+            rMin, rMax         = ( float(val) for val in mathEval.split(",") )
+            xc  , yc           = 0.0, 0.0
+        if ( len( mathEval.split(",") ) == 4 ):
+            rMin, rMax, xc, yc = ( float(val) for val in mathEval.split(",") )
         else:
-            bb     = gmsh.model.occ.getBoundingBox( itarget, volume_num )
-            rMin   = 0.0
-            rMax   = np.max( np.abs( [ bb[0], bb[1], bb[3], bb[4] ] ) )
-        r_eval     = "(({1}-sqrt(x*x+y*y))/({1}-{0}))".format( rMin, rMax )
+            bb                 = gmsh.model.occ.getBoundingBox( itarget, volume_num )
+            rMax               = np.max( np.abs( [ bb[0], bb[1], bb[3], bb[4] ] ) )
+            xc  , yc , rMin    = 0.0, 0.0, 0.0
+        r_eval     = "(({1}-sqrt((x-({2}))^2+(y-({3}))^2))/({1}-{0}))"\
+            .format( rMin, rMax, xc, yc )
         mathEval   = "(({1}-{0})*({2})+{0})".format( meshsize[0], meshsize[1], r_eval )
         
     elif ( meshType.lower() in [ "gradiant-rz"] ):
-        if ( len( mathEval.split(",") ) == 4 ):
-            rMin,rMax,zMin,zMax = ( float(val) for val in mathEval.split(",") )
+        if   ( len( mathEval.split(",") ) == 4 ):
+            rMin,rMax,zMin,zMax       = ( float(val) for val in mathEval.split(",") )
+            xc, yc                    = 0.0, 0.0
+        elif ( len( mathEval.split(",") ) == 6 ):
+            rMin,rMax,zMin,zMax,xc,yc = ( float(val) for val in mathEval.split(",") )
         else:
             print( "[assign__meshsize.py] gradiant-rtz mode needs parameter @ evaluation" )
             print( "[assign__meshsize.py]    evaluation :: rMin,rMax,zMin,zMax" )
             sys.exit()
-        r_eval     = "(({1}-sqrt(x*x+y*y))/({1}-{0}))".format( rMin, rMax )
+        r_eval     = "(({1}-sqrt((x-({2}))^2+(y-({3}))^2))/({1}-{0}))"\
+            .format( rMin, rMax, xc, yc )
         z_eval     = "((z-{0})/({1}-{0}))"            .format( zMin, zMax )
         mathEval   = "(({1}-{0})*(Max(({2}),({3})))+{0})"\
             .format( meshsize[0], meshsize[1], r_eval, z_eval )
 
     elif ( meshType.lower() in [ "gradiant-rtz"] ):
         if ( len( mathEval.split(",") ) == 4 ):
-            rMin,rMax,zMin,zMax = ( float(val) for val in mathEval.split(",") )
+            rMin,rMax,zMin,zMax       = ( float(val) for val in mathEval.split(",") )
+            xc, yc                    = 0.0, 0.0
+        elif ( len( mathEval.split(",") ) == 6 ):
+            rMin,rMax,zMin,zMax,xc,yc = ( float(val) for val in mathEval.split(",") )
         else:
             print( "[assign__meshsize.py] gradiant-rtz mode needs parameter @ evaluation" )
             print( "[assign__meshsize.py]    evaluation :: rMin,rMax,zMin,zMax" )
             sys.exit()
-        r_eval     = "(({1}-sqrt(x*x+y*y))/({1}-{0}))".format( rMin, rMax )
+        r_eval     = "(({1}-sqrt((x-({2}))^2+(y-({3}))^2))/({1}-{0}))"\
+            .format( rMin, rMax, xc, yc )
         z_eval     = "((z-{0})/({1}-{0}))"            .format( zMin, zMax )
         t_eval     = "(0.5*(1.0+y/sqrt(x*x+y*y)))"
         mathEval   = "(({1}-{0})*(Max(({2}),({3}),({4})))+{0})"\
             .format( meshsize[0], meshsize[1], r_eval, z_eval, t_eval )
 
+    debug = True
+    if ( debug ):
+        print( mathEval )
+        
     return( mathEval )
 
 
@@ -454,22 +470,39 @@ if ( __name__=="__main__" ):
     gmsh.option.setNumber( "General.Terminal", 1 )
     gmsh.model.add( "model" )
 
-    gmsh.model.occ.addBox( -0.5, -0.5, -0.5, \
-                           +1.0, +1.0, +1.0 )
-    gmsh.model.occ.addBox( -0.0, -0.0, -0.0, \
-                           +1.0, +1.0, +1.0 )
+    sample = "surf"
 
+    if   ( sample == "volu" ):
+        physFile = "test/phys.conf"
+        meshFile = "test/mesh.conf"
+        gmsh.model.occ.addBox( -0.5, -0.5, -0.5, \
+                               +1.0, +1.0, +1.0 )
+        gmsh.model.occ.addBox( -0.0, -0.0, -0.0, \
+                               +1.0, +1.0, +1.0 )
+    elif ( sample == "surf" ):
+        physFile = "test/phys_2d.conf"
+        meshFile = "test/mesh_2d.conf"
+        circle1 = gmsh.model.occ.addCircle( 0.,  0.0, 0., 1.0 )
+        circle2 = gmsh.model.occ.addCircle( 0., -0.4, 0., 0.4 )
+        circle3 = gmsh.model.occ.addCircle( 0., -0.7, 0., 0.1 )
+        cloop1  = gmsh.model.occ.addCurveLoop( [circle1] )
+        cloop2  = gmsh.model.occ.addCurveLoop( [circle2] )
+        cloop3  = gmsh.model.occ.addCurveLoop( [circle3] )
+        surf1   = gmsh.model.occ.addPlaneSurface( [cloop1] )
+        surf2   = gmsh.model.occ.addPlaneSurface( [cloop2] )
+        surf3   = gmsh.model.occ.addPlaneSurface( [cloop3] )
+        
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
-
-    # meshFile = "test/mesh.conf"
-    physFile = "test/phys_only.conf"
-    meshFile = "test/mesh_only.conf"
-    assign__meshsize( meshFile=meshFile, physFile=physFile )
+    
+    assign__meshsize( meshFile=meshFile, physFile=physFile, target="surf" )
     gmsh.model.occ.synchronize()
 
-    gmsh.model.mesh.generate(3)
+    if   ( sample == "volu" ):
+        gmsh.model.mesh.generate(3)
+    elif ( sample == "surf" ):
+        gmsh.model.mesh.generate(2)
     gmsh.write( "test/model.msh" )
     gmsh.finalize()
 
