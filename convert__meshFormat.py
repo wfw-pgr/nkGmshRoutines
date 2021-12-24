@@ -55,7 +55,7 @@ def convert__meshFormat( inpFile="msh/model.stp", outFile="msh/model.stl", \
 # ========================================================= #
 # ===  generate__testModel.py                           === #
 # ========================================================= #
-def generate__testModel():
+def generate__testModel( outFile="msh/model.stp" ):
 
     # ------------------------------------------------- #
     # --- [1] initialization of the gmsh            --- #
@@ -87,7 +87,7 @@ def generate__testModel():
     # --- [4] post process                          --- #
     # ------------------------------------------------- #
     gmsh.model.occ.synchronize()
-    gmsh.write( "msh/model.stp" )
+    gmsh.write( outFile )
     gmsh.finalize()
     
     
@@ -98,6 +98,10 @@ def generate__testModel():
 if ( __name__=="__main__" ):
 
     delete_entities = [1]
+    inpFile = "test/model.stp"
+    outFile = "test/model.stl"
+    logFile = "test/entities.log"
     
-    generate__testModel()
-    convert__meshFormat( delete_entities=delete_entities )
+    generate__testModel( outFile=inpFile )
+    convert__meshFormat( inpFile=inpFile, outFile=outFile, logFile=logFile, \
+                         delete_entities=delete_entities )
