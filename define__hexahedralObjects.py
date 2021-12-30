@@ -48,7 +48,7 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
         for ik in range( nCS-1 ):
             vertex  = np.concatenate( [ cs[:,:,ik], cs[:,:,ik+1] ], axis=0 )
             ret     = ghh.generate__hexahedron( vertex=vertex, defineVolu=True, defineSurf=True )
-            retList.append( ret[0][0] )
+            retList.append( ( voluDim,ret ) )
         hexas[ "id={0:04}".format( hID ) ] = retList
     
     # ------------------------------------------------- #
