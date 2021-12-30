@@ -51,10 +51,10 @@ def generate__hexahedron( vertex=None, quad1=None, quad2=None, \
         for ie, edge in enumerate( edge_connect ):
             vkey       = "volu_iS{0}_iL{1}-{2}".format( iS, edge[0], edge[1] )
             iv1,iv2    = conn[ edge[0] ], conn[ edge[1] ]
-            vert1      = np.copy(  vertex[iv1,:] )
-            vert2      = np.copy(  vertex[iv2,:] )
-            vert3      = np.copy( s_center[iS,:] )
-            vert4      = np.copy( v_center       )
+            vert1      = np.copy(  vertex [iv1,:] )
+            vert2      = np.copy(  vertex [iv2,:] )
+            vert3      = np.copy( s_center[iS ,:] )
+            vert4      = np.copy( v_center        )
             verts      = [vert1[None,:],vert2[None,:],vert3[None,:],vert4[None,:]]
             vert_t     = np.concatenate( verts, axis=0 )
             volu[vkey] = gth.generate__tetrahedron( vertex=vert_t )
