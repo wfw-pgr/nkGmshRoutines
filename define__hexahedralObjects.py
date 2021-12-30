@@ -10,7 +10,7 @@ import nkGmshRoutines.generate__fanShape   as fan
 # ===  define__hexahedralObjects                        === #
 # ========================================================= #
 
-def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, names=None, \
+def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnType="list", \
                                r_margin=0.1, t_margin=0.1, z_margin=0.1 ):
 
     id_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
@@ -34,7 +34,7 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, names=Non
     crossSection = np.array( crossSection )
 
     IDs          = np.array( Data[:,id_], dtype=np.int64 )
-    IDtypes      = list( set( IDs ) )
+    IDtypes      = sorted( list( set( IDs ) ) )
     
     # ------------------------------------------------- #
     # --- [3] make hexahedron                       --- #
@@ -56,20 +56,18 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, names=Non
     # ------------------------------------------------- #
     volu  = []
     named = {}
-    keys  = list( hexas.keys() )
-    for key in keys:
+    for ik,hID in enumerate( IDtypes ):
+        key     = "id={0:04}".format( hID )
         dimtags = hexas[key]
         if ( len( dimtags ) >= 2 ):
-            targets   = [ dimtags[0] ]
-            tools     =   dimtags[1:]
-            ret, fmap = gmsh.model.occ.fuse( targets, tools )
-            volu     += ret
+            targets     = [ dimtags[0] ]
+            tools       =   dimtags[1:]
+            ret, fmap   = gmsh.model.occ.fuse( targets, tools )
+            volu       += ret
+            named[key]  = ret
         else:
-            volu     += dimtags
-
-    # ------------------------------------------------- #
-    # --- [5] naming                                --- #
-    # ------------------------------------------------- #
+            volu       += dimtags
+            named[key]  = dimtags
             
     # ------------------------------------------------- #
     # --- [5] generate blancket                     --- #
@@ -101,15 +99,19 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, names=Non
         # ------------------------------------------------- #
         # --- [5-3] boolean blanket                     --- #
         # ------------------------------------------------- #
-        target       = [ (voluDim,blanket) ]
-        tools        = volu
-        blanket,fmap = gmsh.model.occ.cut( target, tools, removeObject=True, removeTool=False )
-        volu        += blanket
+        target            = [ (voluDim,blanket) ]
+        tools             = volu
+        blanket,fmap      = gmsh.model.occ.cut( target, tools, removeObject=True, removeTool=False )
+        volu             += blanket
+        named["blanket"]  = blanket
         
     # ------------------------------------------------- #
     # --- [6] return volume                         --- #
     # ------------------------------------------------- #
-    return( volu )
+    if   ( returnType.lower() == "list" ):
+        return( volu  )
+    elif ( returnType.lower() == "dict" ):
+        return( named )
 
 
 # ========================================================= #
