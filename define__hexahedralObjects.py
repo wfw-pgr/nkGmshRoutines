@@ -10,7 +10,7 @@ import nkGmshRoutines.generate__fanShape   as fan
 # ===  define__hexahedralObjects                        === #
 # ========================================================= #
 
-def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, \
+def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, names=None, \
                                r_margin=0.1, t_margin=0.1, z_margin=0.1 ):
 
     id_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
@@ -54,8 +54,9 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, \
     # ------------------------------------------------- #
     # --- [4] fuse objects                          --- #
     # ------------------------------------------------- #
-    volu = []
-    keys = list( hexas.keys() )
+    volu  = []
+    named = {}
+    keys  = list( hexas.keys() )
     for key in keys:
         dimtags = hexas[key]
         if ( len( dimtags ) >= 2 ):
@@ -66,6 +67,10 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, \
         else:
             volu     += dimtags
 
+    # ------------------------------------------------- #
+    # --- [5] naming                                --- #
+    # ------------------------------------------------- #
+            
     # ------------------------------------------------- #
     # --- [5] generate blancket                     --- #
     # ------------------------------------------------- #
