@@ -70,8 +70,9 @@ def generate__hexahedron( vertex=None, quad1=None, quad2=None, \
         target    = [ dimtags[0] ]
         tools     =   dimtags[1:]
         ret       = gmsh.model.occ.fuse( target, tools )
+        ret       = ret[0][0][1]
     else:
-        ret = None
+        ret       = None
     return( ret )
 
     
