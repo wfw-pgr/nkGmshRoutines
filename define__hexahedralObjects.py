@@ -134,7 +134,8 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
-    define__hexahedralObjects( inpFile="test/mc_cs.conf" )
+    ret = define__hexahedralObjects( inpFile="test/mc_cs.conf", returnType="dict" )
+    print( ret )
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
