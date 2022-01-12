@@ -7,15 +7,18 @@ import nkGmshRoutines.generate__sector180 as sec
 # ========================================================= #
 # ===  define__geometry                                 === #
 # ========================================================= #
-def define__geometry( inpFile="test/geometry.conf" ):
+def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, table=None ):
 
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
     # ------------------------------------------------- #
-    import nkUtilities.load__keyedTable as lkt
-    table = lkt.load__keyedTable( inpFile=inpFile )
-    keys  = list(   table.keys() )
-    names = list( ( table[keys[0]] ).keys() )
+    if ( table is None ):
+        import nkUtilities.load__keyedTable as lkt
+        table = lkt.load__keyedTable( inpFile=inpFile )
+    if ( keys  is None ):
+        keys  = list(   table.keys() )
+    if ( names is None ):
+        names = list( ( table[keys[0]] ).keys() )
     
     # ------------------------------------------------- #
     # --- [2] make geometry for every key           --- #
