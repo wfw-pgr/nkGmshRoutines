@@ -62,7 +62,8 @@ def generate__sector180( lc=None, r1=0.0, r2=1.0, side="+", tag=-1, fuse=False, 
         targets = [ (3, (ret1["volu"])["sector"] ) ]
         tools   = [ (3, (ret2["volu"])["sector"] ) ]
         ret = gmsh.model.occ.fuse( targets, tools, tag=tag, removeObject=True, removeTool=True )
-    
+        ret = ret[0]
+        
     return( ret )
 
 
