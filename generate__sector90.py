@@ -1,5 +1,5 @@
 import sys
-import numpy         as np
+import numpy as np
 import gmsh
 # import gmsh_api.gmsh as gmsh
 
@@ -19,7 +19,7 @@ def generate__sector90( lc=None, r1=0.0, r2=1.0, quadrant=1, recombine=False, \
     if ( defineVolu ):
         defineSurf = True
     if ( lc is None ):
-        lc = ( r2 - r1 ) / 10.0
+        lc = 0.0
     
     # ------------------------------------------------- #
     # --- [2] generate points                       --- #

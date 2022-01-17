@@ -7,7 +7,8 @@ import nkGmshRoutines.generate__sector180 as sec
 # ========================================================= #
 # ===  define__geometry                                 === #
 # ========================================================= #
-def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, table=None ):
+def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
+                      table=None, dimtags=None ):
 
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -19,11 +20,12 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, table
         keys  = list(   table.keys() )
     if ( names is None ):
         names = list( ( table[keys[0]] ).keys() )
+    if ( dimtags is None ):
+        dimtags = {}
     
     # ------------------------------------------------- #
     # --- [2] make geometry for every key           --- #
     # ------------------------------------------------- #
-    dimtags = {}
     for key in keys:
         card = table[key]
         

@@ -19,8 +19,8 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
     if ( names   is None ):
         names = list( ( table[keys[0]] ).keys() )
     if ( dimtags is None ):
-        sys.exit( "[boolean__fromTable]  dimtags == ???" )
-
+        dimtags = {}
+        
     # ------------------------------------------------- #
     # --- [2] boolean execution                     --- #
     # ------------------------------------------------- #
