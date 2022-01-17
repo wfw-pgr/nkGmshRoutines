@@ -31,18 +31,33 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # --- [2-1] boolean cut                         --- #
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "cut"  ):
-            dimtags[key] = boolean__cut ( card=card, dimtags=dimtags )
+            dimtags[key] = boolean__cut   ( card=card, dimtags=dimtags )
         # ------------------------------------------------- #
         # --- [2-2] boolean fuse                        --- #
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "fuse" ):
-            dimtags[key] = boolean__fuse( card=card, dimtags=dimtags )
+            dimtags[key] = boolean__fuse  ( card=card, dimtags=dimtags )
         # ------------------------------------------------- #
         # --- [2-3] boolean intersect                   --- #
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "intersect" ):
             dimtags[key] = boolean__intersect( card=card, dimtags=dimtags )
-    
+        # ------------------------------------------------- #
+        # --- [2-4] boolean copy                        --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "copy" ):
+            dimtags[key] = boolean__copy  ( card=card, dimtags=dimtags )
+        # ------------------------------------------------- #
+        # --- [2-5] boolean copy                        --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "mirror" ):
+            dimtags[key] = boolean__mirror( card=card, dimtags=dimtags )
+        # ------------------------------------------------- #
+        # --- [2-6] boolean remove                      --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "remove" ):
+            dimtags[key] = boolean__remove( card=card, dimtags=dimtags )
+
     return( dimtags )
 
 
@@ -153,6 +168,79 @@ def boolean__intersect( dimtags=None, card=None ):
     if ( card["removeTool"]   ):
         for key in card["toolKeys"]:
             dimtags.pop( key )
+    gmsh.model.occ.synchronize()
+    return( ret )
+
+
+# ========================================================= #
+# ===  boolean__copy                                    === #
+# ========================================================= #
+
+def boolean__copy( dimtags=None, card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card    is None ): sys.exit( "[boolean__copy] card    == ???" )
+    if ( dimtags is None ): sys.exit( "[boolean__copy] dimtags == ???" )
+    
+    # ------------------------------------------------- #
+    # --- [2] call generate__sector180              --- #
+    # ------------------------------------------------- #
+    target       = [ dimtags[key] for key in card["targetKeys"] ]
+    ret          = gmsh.model.occ.copy( target )
+    gmsh.model.occ.synchronize()
+    return( ret )
+
+
+
+# ========================================================= #
+# ===  boolean__remove                                  === #
+# ========================================================= #
+
+def boolean__remove( dimtags=None, card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card    is None ): sys.exit( "[boolean__remove] card    == ???" )
+    if ( dimtags is None ): sys.exit( "[boolean__remove] dimtags == ???" )
+    
+    if ( not( "recursive" in card ) ):
+        card["recursive"] = False
+    
+    # ------------------------------------------------- #
+    # --- [2] call generate__sector180              --- #
+    # ------------------------------------------------- #
+    target       = [ dimtags[key] for key in card["targetKeys"] ]
+    ret          = gmsh.model.occ.remove( target, recursive=card["recursive"] )
+    gmsh.model.occ.synchronize()
+    return( ret )
+
+
+# ========================================================= #
+# ===  boolean__mirror                                  === #
+# ========================================================= #
+
+def boolean__mirror( dimtags=None, card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card    is None ): sys.exit( "[boolean__mirror] card    == ???" )
+    if ( dimtags is None ): sys.exit( "[boolean__mirror] dimtags == ???" )
+    
+    if ( not( "coef" in card ) ):
+        print("[boolean__mirror] cannot find coef in card...  [ERROR]")
+        print("[boolean__mirror] coef = [ a,b,c,d ] for ax+by+cz+d=0 :: plane of mirroring. ")
+        sys.exit()
+        
+    # ------------------------------------------------- #
+    # --- [2] call generate__sector180              --- #
+    # ------------------------------------------------- #
+    target       = [ dimtags[key] for key in card["targetKeys"] ]
+    ret          = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
+                                          card["coef"][2], card["coef"][3] )
     gmsh.model.occ.synchronize()
     return( ret )
 
