@@ -58,7 +58,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
         # ------------------------------------------------- #
-        if ( card["geometry_type"].lower() in geometry_types ):
+        if ( not( card["geometry_type"].lower() in geometry_types ) ):
             print( "[define__geometry.py] unknown geometry_type :: {0} "\
                    .format( card["geometry_type"] ) )
             sys.exit()

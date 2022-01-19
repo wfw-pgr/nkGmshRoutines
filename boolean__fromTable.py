@@ -79,7 +79,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
         # ------------------------------------------------- #
-        if ( card["boolean_type"].lower() in boolean_types ):
+        if ( not( card["boolean_type"].lower() in boolean_types ) ):
             print( "[boolean__fromTable.py] unknown boolean_type :: {0} "\
                    .format( card["boolean_type"] ) )
             sys.exit()
