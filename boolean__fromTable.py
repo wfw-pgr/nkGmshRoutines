@@ -8,6 +8,8 @@ import gmsh
 def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
                         keys=None, names=None, table=None ):
 
+    boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "remove", "duplicates" ]
+    
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
     # ------------------------------------------------- #
@@ -57,7 +59,30 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "remove" ):
             dimtags[key] = boolean__remove( card=card, dimtags=dimtags )
-
+        # ------------------------------------------------- #
+        # --- [2-6] remove all duplicates               --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "duplicates" ):
+            gmsh.model.occ.removeAllDuplicates()
+            gmsh.model.occ.synchronize()
+        # ------------------------------------------------- #
+        # --- [2-a] debug display                       --- #
+        # ------------------------------------------------- #
+        if ( "debug" in card ):
+            if ( card["debug"] is True ):
+                entities = gmsh.model.getEntities(3)
+                print()
+                print( "key        :: ", key )
+                print( "dimtags    :: ", dimtags )
+                print( "entities   :: ", entities )
+                print()
+        # ------------------------------------------------- #
+        # --- [2-x] exception                           --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() in boolean_types ):
+            print( "[boolean__fromTable.py] unknown boolean_type :: {0} "\
+                   .format( card["boolean_type"] ) )
+            sys.exit()
     return( dimtags )
 
 
@@ -80,8 +105,11 @@ def boolean__cut( dimtags=None, card=None ):
     if ( not( "removeTool"    in card ) ): card["removeTool"]   = True
     if ( card["removeObject"] is None   ): card["removeObject"] = True
     if ( card["removeTool"]   is None   ): card["removeTool"]   = True
-    target    = [ dimtags[key] for key in card["targetKeys"] ]
-    tool      = [ dimtags[key] for key in card["toolKeys"  ] ]
+    target, tool = [], []
+    for key in card["targetKeys"]:
+        target  += dimtags[key]
+    for key in card["toolKeys"]:
+        tool    += dimtags[key]
     ret,fmap  = gmsh.model.occ.cut( target, tool, \
                                     removeObject=card["removeObject"], \
                                     removeTool  =card["removeTool"]    )
@@ -94,7 +122,19 @@ def boolean__cut( dimtags=None, card=None ):
     if ( card["removeTool"]   ):
         for key in card["toolKeys"]:
             dimtags.pop( key )
-    gmsh.model.occ.synchronize()
+    # ------------------------------------------------- #
+    # --- [4] debug displaying                      --- #
+    # ------------------------------------------------- #
+    if ( "debug" in card ):
+        if ( card["debug"] is True ):
+            print()
+            print( "targetKeys :: ", card["targetKeys"] )
+            print( "toolKeys   :: ", card["toolKeys"] )
+            print( "target     :: ", target )
+            print( "tool       :: ", tool   )
+            print( "ret        :: ", ret    )
+            print( "fmap       :: ", fmap   )
+            print()
     return( ret )
 
 
@@ -117,8 +157,11 @@ def boolean__fuse( dimtags=None, card=None ):
     if ( not( "removeTool"    in card ) ): card["removeTool"]   = True
     if ( card["removeObject"] is None   ): card["removeObject"] = True
     if ( card["removeTool"]   is None   ): card["removeTool"]   = True
-    target    = [ dimtags[key] for key in card["targetKeys"] ]
-    tool      = [ dimtags[key] for key in card["toolKeys"  ] ]
+    target, tool = [], []
+    for key in card["targetKeys"]:
+        target  += dimtags[key]
+    for key in card["toolKeys"]:
+        tool    += dimtags[key]
     ret,fmap  = gmsh.model.occ.fuse( target, tool, \
                                      removeObject=card["removeObject"], \
                                      removeTool  =card["removeTool"]    )
@@ -131,7 +174,19 @@ def boolean__fuse( dimtags=None, card=None ):
     if ( card["removeTool"]   ):
         for key in card["toolKeys"]:
             dimtags.pop( key )
-    gmsh.model.occ.synchronize()
+    # ------------------------------------------------- #
+    # --- [4] debug displaying                      --- #
+    # ------------------------------------------------- #
+    if ( "debug" in card ):
+        if ( card["debug"] is True ):
+            print()
+            print( "targetKeys :: ", card["targetKeys"] )
+            print( "toolKeys   :: ", card["toolKeys"] )
+            print( "target     :: ", target )
+            print( "tool       :: ", tool   )
+            print( "ret        :: ", ret    )
+            print( "fmap       :: ", fmap   )
+            print()
     return( ret )
 
 
@@ -154,8 +209,11 @@ def boolean__intersect( dimtags=None, card=None ):
     if ( not( "removeTool"    in card ) ): card["removeTool"]   = True
     if ( card["removeObject"] is None   ): card["removeObject"] = True
     if ( card["removeTool"]   is None   ): card["removeTool"]   = True
-    target    = [ dimtags[key] for key in card["targetKeys"] ]
-    tool      = [ dimtags[key] for key in card["toolKeys"  ] ]
+    target, tool = [], []
+    for key in card["targetKeys"]:
+        target  += dimtags[key]
+    for key in card["toolKeys"]:
+        tool    += dimtags[key]
     ret,fmap  = gmsh.model.occ.intersect( target, tool, \
                                           removeObject=card["removeObject"], \
                                           removeTool  =card["removeTool"]    )
@@ -168,8 +226,21 @@ def boolean__intersect( dimtags=None, card=None ):
     if ( card["removeTool"]   ):
         for key in card["toolKeys"]:
             dimtags.pop( key )
-    gmsh.model.occ.synchronize()
+    # ------------------------------------------------- #
+    # --- [4] debug displaying                      --- #
+    # ------------------------------------------------- #
+    if ( "debug" in card ):
+        if ( card["debug"] is True ):
+            print()
+            print( "targetKeys :: ", card["targetKeys"] )
+            print( "toolKeys   :: ", card["toolKeys"] )
+            print( "target     :: ", target )
+            print( "tool       :: ", tool   )
+            print( "ret        :: ", ret    )
+            print( "fmap       :: ", fmap   )
+            print()
     return( ret )
+
 
 
 # ========================================================= #
@@ -185,11 +256,23 @@ def boolean__copy( dimtags=None, card=None ):
     if ( dimtags is None ): sys.exit( "[boolean__copy] dimtags == ???" )
     
     # ------------------------------------------------- #
-    # --- [2] call generate__sector180              --- #
+    # --- [2] copy target object                    --- #
     # ------------------------------------------------- #
-    target       = [ dimtags[key] for key in card["targetKeys"] ]
-    ret          = gmsh.model.occ.copy( target )
-    gmsh.model.occ.synchronize()
+    target      = []
+    for key in card["targetKeys"]:
+        target += dimtags[key]
+    ret         = gmsh.model.occ.copy( target )
+    # ------------------------------------------------- #
+    # --- [3] debug displaying                      --- #
+    # ------------------------------------------------- #
+    if ( "debug" in card ):
+        if ( card["debug"] is True ):
+            print()
+            print( "targetKeys :: ", card["targetKeys"] )
+            print( "target     :: ", target )
+            print( "ret        :: ", ret    )
+            print( "fmap       :: "         )
+            print()
     return( ret )
 
 
@@ -212,10 +295,13 @@ def boolean__remove( dimtags=None, card=None ):
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
-    target       = [ dimtags[key] for key in card["targetKeys"] ]
-    ret          = gmsh.model.occ.remove( target, recursive=card["recursive"] )
+    target      = []
+    for key in card["targetKeys"]:
+        target += dimtags[key]
+    ret         = gmsh.model.occ.remove( target, recursive=card["recursive"] )
     gmsh.model.occ.synchronize()
     return( ret )
+
 
 
 # ========================================================= #
@@ -236,13 +322,16 @@ def boolean__mirror( dimtags=None, card=None ):
         sys.exit()
         
     # ------------------------------------------------- #
-    # --- [2] call generate__sector180              --- #
+    # --- [2] mirror object                         --- #
     # ------------------------------------------------- #
-    target       = [ dimtags[key] for key in card["targetKeys"] ]
-    ret          = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
-                                          card["coef"][2], card["coef"][3] )
+    target      = []
+    for key in card["targetKeys"]:
+        target += dimtags[key]
+    ret         = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
+                                         card["coef"][2], card["coef"][3] )
     gmsh.model.occ.synchronize()
     return( ret )
+
 
 
 # ========================================================= #

@@ -10,6 +10,8 @@ import nkGmshRoutines.generate__sector180 as sec
 def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
+    geometry_types = [ "quadring", "cube", "cylinder", "sphere" ]
+    
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
     # ------------------------------------------------- #
@@ -28,24 +30,38 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
     # ------------------------------------------------- #
     for key in keys:
         card = table[key]
+
+        if ( not( "geometry_type" in card ) ):
+            continue
         
         # ------------------------------------------------- #
         # --- [2-1] sector shape                        --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "quadring" ):
             dimtags[key] = define__QuadRing( card=card )
-        
         # ------------------------------------------------- #
         # --- [2-2] cube shape                          --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "cube"     ):
-            dimtags[key] = define__cube( card=card )
-
+            dimtags[key] = define__cube    ( card=card )
         # ------------------------------------------------- #
-        # --- [2-2] cylinder shape                      --- #
+        # --- [2-3] cylinder shape                      --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "cylinder" ):
             dimtags[key] = define__cylinder( card=card )
+        # ------------------------------------------------- #
+        # --- [2-4] sphere  shape                       --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() == "sphere"   ):
+            dimtags[key] = define__sphere  ( card=card )
+
+        # ------------------------------------------------- #
+        # --- [2-x] exception                           --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in geometry_types ):
+            print( "[define__geometry.py] unknown geometry_type :: {0} "\
+                   .format( card["geometry_type"] ) )
+            sys.exit()
 
     return( dimtags )
 
@@ -60,6 +76,9 @@ def define__cube( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__cube] card == ???" )
+    if ( not( "xc" in card ) ): card["xc"] = 0.0
+    if ( not( "yc" in card ) ): card["yc"] = 0.0
+    if ( not( "zc" in card ) ): card["zc"] = 0.0
     
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
@@ -87,6 +106,9 @@ def define__cylinder( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__cylinder] card == ???" )
+    if ( not( "xc" in card ) ): card["xc"] = 0.0
+    if ( not( "yc" in card ) ): card["yc"] = 0.0
+    if ( not( "zc" in card ) ): card["zc"] = 0.0
     
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
@@ -119,6 +141,9 @@ def define__sphere( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__sphere] card == ???" )
+    if ( not( "xc" in card ) ): card["xc"] = 0.0
+    if ( not( "yc" in card ) ): card["yc"] = 0.0
+    if ( not( "zc" in card ) ): card["zc"] = 0.0
     
     # ------------------------------------------------- #
     # --- [2] call addSphere                        --- #
@@ -198,17 +223,15 @@ def affine__transform( target=None, card=None ):
     # --- [3] translate object                      --- #
     # ------------------------------------------------- #
     dx, dy, dz = 0.0, 0.0, 0.0
-    if ( ( "move.r" in card ) and ( "move.r.th" in card ) ):
-        ptheta      = card["move.r.th"] / 180.0 * np.pi
-        dx         += card["move.r.th"] * np.cos( ptheta )
-        dy         += card["move.r.th"] * np.sin( ptheta )
-        dz         += 0.0
+    if ( ( "move.r.r" in card ) and ( "move.r.th" in card ) ):
+        dx         += card["move.r.r"] * np.cos( card["move.r.th"] * deg2rad )
+        dy         += card["move.r.r"] * np.sin( card["move.r.th"] * deg2rad )
     if ( "move.x" in card ):
-        dx         += dx+card["move.x"]
+        dx         += card["move.x"]
     if ( "move.y" in card ):
-        dy         += dy+card["move.y"]
+        dy         += card["move.y"]
     if ( "move.z" in card ):
-        dz         += dz+card["move.z"]
+        dz         += card["move.z"]
     if ( ( dx != 0.0 ) or ( dy != 0.0 ) or ( dz != 0.0 ) ):
         gmsh.model.occ.translate( target, dx, dy, dz )
     return( target )

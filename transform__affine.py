@@ -27,8 +27,9 @@ def transform__affine( inpFile="test/transform.conf", dimtags=None, keys=None, \
     # ------------------------------------------------- #
     for key in keys:
         card = table[key]
-        if ( card["transform_type"].lower() == "affine" ):
-            dimtags[key] = affine__transform( dimtags=dimtags, card=card )
+        if ( "transform_type" in card ):
+            if ( card["transform_type"].lower() == "affine" ):
+                dimtags[key] = affine__transform( dimtags=dimtags, card=card )
         
     return( dimtags )
 
@@ -63,17 +64,15 @@ def affine__transform( dimtags=None, card=None ):
     # --- [3] translate object                      --- #
     # ------------------------------------------------- #
     dx, dy, dz = 0.0, 0.0, 0.0
-    if ( ( "move.r" in card ) and ( "move.r.th" in card ) ):
-        ptheta      = card["move.r.th"] / 180.0 * np.pi
-        dx         += card["move.r.th"] * np.cos( ptheta )
-        dy         += card["move.r.th"] * np.sin( ptheta )
-        dz         += 0.0
+    if ( ( "move.r.r" in card ) and ( "move.r.th" in card ) ):
+        dx += card["move.r.r"] * np.cos( card["move.r.th"] * deg2rad )
+        dy += card["move.r.r"] * np.sin( card["move.r.th"] * deg2rad )
     if ( "move.x" in card ):
-        dx         += dx+card["move.x"]
+        dx += card["move.x"]
     if ( "move.y" in card ):
-        dy         += dy+card["move.y"]
+        dy += card["move.y"]
     if ( "move.z" in card ):
-        dz         += dz+card["move.z"]
+        dz += card["move.z"]
     if ( ( dx != 0.0 ) or ( dy != 0.0 ) or ( dz != 0.0 ) ):
         gmsh.model.occ.translate( target, dx, dy, dz )
     return( target )
