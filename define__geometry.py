@@ -1,5 +1,5 @@
 import numpy as np
-import os, sys
+import os, sys, re
 import gmsh
 import nkGmshRoutines.generate__sector180 as sec
 
@@ -10,7 +10,8 @@ import nkGmshRoutines.generate__sector180 as sec
 def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
-    geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", "hollowpipe" ]
+    geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", \
+                       "hollowpipe", "polygon", "prism" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -59,6 +60,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "sphere"   ):
             dimtags[key] = define__sphere  ( card=card )
+        # ------------------------------------------------- #
+        # --- [2-6] polygon  shape                      --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["polygon","prism"]  ):
+            dimtags[key] = define__polygon ( card=card )
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -81,16 +87,19 @@ def define__cube( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__cube] card == ???" )
-    if ( not( "xc" in card ) ): card["xc"] = 0.0
-    if ( not( "yc" in card ) ): card["yc"] = 0.0
-    if ( not( "zc" in card ) ): card["zc"] = 0.0
+    if ( not( "xc"        in card ) ): card["xc"]        = 0.0
+    if ( not( "yc"        in card ) ): card["yc"]        = 0.0
+    if ( not( "zc"        in card ) ): card["zc"]        = 0.0
+    if ( not( "centering" in card ) ): card["centering"] = True
     
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
-    x1,x2,x3  = card["xc"]-0.5*card["wx"], card["yc"]-0.5*card["wy"], card["zc"]-0.5*card["wz"]
-    dx,dy,dz  = card["wx"]               , card["wy"]               , card["wz"]
-    ret       = gmsh.model.occ.addBox( x1, x2, x3, dx, dy, dz )
+    xc,yc,zc  = card["xc"], card["yc"], card["zc"]
+    if ( card["centering"] ):
+        xc,yc,zc  = xc-0.5*card["dx"], yc-0.5*card["dy"], zc-0.5*card["dz"]
+    dx,dy,dz  = card["wx"]           , card["wy"]       , card["wz"]
+    ret       = gmsh.model.occ.addBox( xc, yc, zc, dx, dy, dz )
     ret       = [(3,ret)]
     gmsh.model.occ.synchronize()
     
@@ -111,14 +120,17 @@ def define__cylinder( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__cylinder] card == ???" )
-    if ( not( "xc" in card ) ): card["xc"] = 0.0
-    if ( not( "yc" in card ) ): card["yc"] = 0.0
-    if ( not( "zc" in card ) ): card["zc"] = 0.0
+    if ( not( "xc"        in card ) ): card["xc"]        = 0.0
+    if ( not( "yc"        in card ) ): card["yc"]        = 0.0
+    if ( not( "zc"        in card ) ): card["zc"]        = 0.0
+    if ( not( "centering" in card ) ): card["centering"] = True
     
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
-    x1,x2,x3  = card["xc"]-0.5*card["dx"], card["yc"]-0.5*card["dy"], card["zc"]-0.5*card["dz"]
+    xc,yc,zc  = card["xc"], card["yc"], card["zc"]
+    if ( card["centering"] ):
+        xc,yc,zc  = xc-0.5*card["dx"], yc-0.5*card["dy"], zc-0.5*card["dz"]
     dx,dy,dz  = card["dx"]               , card["dy"]               , card["dz"]
     r1        = card["r1"]
     if ( "r2" in card ):
@@ -126,9 +138,9 @@ def define__cylinder( card=None ):
     else:
         r2    = None
     if ( r2 is not None ):
-        ret   = gmsh.model.occ.addCone    ( x1, x2, x3, dx, dy, dz, r1, r2 )
+        ret   = gmsh.model.occ.addCone    ( xc, yc, zc, dx, dy, dz, r1, r2 )
     else:
-        ret   = gmsh.model.occ.addCylinder( x1, x2, x3, dx, dy, dz, r1     )
+        ret   = gmsh.model.occ.addCylinder( xc, yc, zc, dx, dy, dz, r1     )
     ret       = [(3,ret)]
     gmsh.model.occ.synchronize()
     
@@ -149,15 +161,15 @@ def define__hollowPipe( card=None ):
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[define__hollowPipe] card == ???" )
-    if ( not( "xc"   in card ) ): card["xc"]   = 0.0
-    if ( not( "yc"   in card ) ): card["yc"]   = 0.0
-    if ( not( "zc"   in card ) ): card["zc"]   = 0.0
-    if ( not( "both" in card ) ): card["both"] = True
+    if ( not( "xc"        in card ) ): card["xc"]        = 0.0
+    if ( not( "yc"        in card ) ): card["yc"]        = 0.0
+    if ( not( "zc"        in card ) ): card["zc"]        = 0.0
+    if ( not( "centering" in card ) ): card["centering"] = True
     
     # ------------------------------------------------- #
     # --- [2] prepare parameters                    --- #
     # ------------------------------------------------- #
-    if ( card["both"] ):
+    if ( card["centering"] ):
         Opt   = [ card["xc"]-0.5*card["dx"], \
                   card["yc"]-0.5*card["dy"], \
                   card["zc"]-0.5*card["dz"]  ]
@@ -187,6 +199,51 @@ def define__hollowPipe( card=None ):
     return( ret )
 
 
+# ========================================================= #
+# ===  define__polygon                                  === #
+# ========================================================= #
+
+def define__polygon( card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__polygon] card == ???" )
+    key_of_card = card.keys()
+    vertex_list = []
+    pattern     = "vertex[0-9]*"
+    for key in key_of_card:
+        ret = re.match( pattern, key )
+        if ( ret is None ):
+            pass
+        else:
+            vertex_list.append( card[key] )
+    nVertex     = len( vertex_list )
+    if ( nVertex < 3 ):
+        print( "[define__polygon] too small nVertex number... [ERROR]" )
+        sys.exit()
+        
+    # ------------------------------------------------- #
+    # --- [2] prepare arguments                     --- #
+    # ------------------------------------------------- #
+    vertex         = np.array( vertex_list )
+    extrude_vector = card["axis"]
+    
+    # ------------------------------------------------- #
+    # --- [3] call generate__polygon             --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__polygon as ply
+    ret   = ply.generate__polygon( vertex    =vertex, extrude_vector=extrude_vector, \
+                                   returnType="dimtags" )
+    gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [4] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
 
 # ========================================================= #
 # ===  define__sphere                                   === #
@@ -205,9 +262,9 @@ def define__sphere( card=None ):
     # ------------------------------------------------- #
     # --- [2] call addSphere                        --- #
     # ------------------------------------------------- #
-    x1,x2,x3  = card["xc"], card["yc"], card["zc"]
+    xc,yc,zc  = card["xc"], card["yc"], card["zc"]
     rc        = card["r1"]
-    ret       = gmsh.model.occ.addSphere( x1, x2, x3, rc )
+    ret       = gmsh.model.occ.addSphere( xc, yc, zc, rc )
     ret       = [(3,ret)]
     gmsh.model.occ.synchronize()
     
@@ -232,10 +289,11 @@ def define__QuadRing( card=None ):
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
+    zF   = card["z1"]
     zH   = card["z2"] - card["z1"]
-    ret1 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="+", zoffset=card["z1"],\
+    ret1 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="+", zoffset=zF,\
                                     height=zH, fuse=True, defineVolu=True )
-    ret2 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="-", zoffset=card["z1"],\
+    ret2 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="-", zoffset=zF,\
                                     height=zH, fuse=True, defineVolu=True )
     gmsh.model.occ.synchronize()
     ret,fm = gmsh.model.occ.fuse( ret1, ret2 )
