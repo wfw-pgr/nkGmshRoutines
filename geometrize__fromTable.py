@@ -29,35 +29,48 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
     # ------------------------------------------------- #
     # --- [2] make geometry for every key           --- #
     # ------------------------------------------------- #
-    
     for key in keys:
-        card = table[key]
-        print( key )
-        print( card )
-        print( dimtags )
-        
+        card      = table[key]
         table_loc = { key:card }
-        print( table_loc )
+        print()
+        print( " key  :: ", key  )
+        print( " card :: ", card )
         
         # ------------------------------------------------- #
         # --- [2-1] define__geometry                    --- #
         # ------------------------------------------------- #
         if ( "geometry_type"  in card ):
-            ret = geo.define__geometry  ( dimtags=dimtags, table=table_loc )
+            ret     = geo.define__geometry  ( dimtags=dimtags, table=table_loc )
             dimtags = { **dimtags, **ret }
+            nop     = False
         # ------------------------------------------------- #
         # --- [2-2] boolean__fromTable                  --- #
         # ------------------------------------------------- #
         if ( "boolean_type"   in card ):
-            ret = bol.boolean__fromTable( dimtags=dimtags, table=table_loc )
+            ret     = bol.boolean__fromTable( dimtags=dimtags, table=table_loc )
             dimtags = { **dimtags, **ret }
+            nop     = False
         # ------------------------------------------------- #
         # --- [2-3] affine__transform                   --- #
         # ------------------------------------------------- #
         if ( "transform_type" in card ):
-            ret = tra.transform__affine ( dimtags=dimtags, table=table_loc )
+            ret     = tra.transform__affine ( dimtags=dimtags, table=table_loc )
             dimtags = { **dimtags, **ret }
+            nop     = False
+        # ------------------------------------------------- #
+        # --- [2-x] exception                           --- #
+        # ------------------------------------------------- #
+        if ( nop ):
+            sys.exit( "[geometrize__fromTable.py] None-Operation with key :: {0}".format( key ) )
 
+    # ------------------------------------------------- #
+    # --- [3] set Entity Name                       --- #
+    # ------------------------------------------------- #
+    keys = list( dimtags.keys() )
+    for key in keys:
+        if ( len( dimtags[key] ) == 1 ):
+            dim, tag = dimtags[key][0]
+            gmsh.model.setEntityName( dim, tag, key )
     return( dimtags )
 
 
@@ -81,7 +94,6 @@ if ( __name__=="__main__" ):
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
     dimtags = geometrize__fromTable( inpFile="test/geometry3.conf" )
-    
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
@@ -98,4 +110,8 @@ if ( __name__=="__main__" ):
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
     gmsh.write( "msh/model.msh" )
+    dim, tags = 3, [1,2,3]
+    for tag in tags:
+        name = gmsh.model.getEntityName( dim, tag )
+        print( name )
     gmsh.finalize()

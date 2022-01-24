@@ -10,7 +10,7 @@ import nkGmshRoutines.generate__sector180 as sec
 def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
-    geometry_types = [ "quadring", "cube", "cylinder", "sphere" ]
+    geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", "hollowpipe" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -47,10 +47,15 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         # --- [2-3] cylinder shape                      --- #
         # ------------------------------------------------- #
-        if ( card["geometry_type"].lower() == "cylinder" ):
+        if ( card["geometry_type"].lower() in [ "cylinder", "pipe" ] ):
             dimtags[key] = define__cylinder( card=card )
         # ------------------------------------------------- #
-        # --- [2-4] sphere  shape                       --- #
+        # --- [2-4] hollow pipe shape                   --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() == "hollowpipe" ):
+            dimtags[key] = define__hollowPipe( card=card )
+        # ------------------------------------------------- #
+        # --- [2-5] sphere  shape                       --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "sphere"   ):
             dimtags[key] = define__sphere  ( card=card )
@@ -118,6 +123,9 @@ def define__cylinder( card=None ):
     r1        = card["r1"]
     if ( "r2" in card ):
         r2    = card["r2"]
+    else:
+        r2    = None
+    if ( r2 is not None ):
         ret   = gmsh.model.occ.addCone    ( x1, x2, x3, dx, dy, dz, r1, r2 )
     else:
         ret   = gmsh.model.occ.addCylinder( x1, x2, x3, dx, dy, dz, r1     )
@@ -129,6 +137,55 @@ def define__cylinder( card=None ):
     # ------------------------------------------------- #
     ret    = affine__transform( target=ret, card=card )
     return( ret )
+
+
+# ========================================================= #
+# ===  define__hollowPipe                               === #
+# ========================================================= #
+
+def define__hollowPipe( card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__hollowPipe] card == ???" )
+    if ( not( "xc"   in card ) ): card["xc"]   = 0.0
+    if ( not( "yc"   in card ) ): card["yc"]   = 0.0
+    if ( not( "zc"   in card ) ): card["zc"]   = 0.0
+    if ( not( "both" in card ) ): card["both"] = True
+    
+    # ------------------------------------------------- #
+    # --- [2] prepare parameters                    --- #
+    # ------------------------------------------------- #
+    if ( card["both"] ):
+        Opt   = [ card["xc"]-0.5*card["dx"], \
+                  card["yc"]-0.5*card["dy"], \
+                  card["zc"]-0.5*card["dz"]  ]
+    else:
+        Opt   = [ card["xc"], card["yc"], card["zc"] ]
+    axis      = [ card["dx"], card["dy"], card["dz"] ]
+    if ( "r1" in card ):
+        r1    = card["r1"]
+    else:
+        r1    = 0.0
+    if ( "r2" in card ):
+        r2    = card["r2"]
+    else:
+        sys.exit( "[define__hollowPipe] r2 == ??? [ERROR] " )
+        
+    # ------------------------------------------------- #
+    # --- [3] call generate__hollowPipe             --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__hollowPipe as ghp
+    ret   = ghp.generate__hollowPipe( r1=r1, r2=r2, Opt=Opt, axis=axis )
+    gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [4] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
 
 
 # ========================================================= #
