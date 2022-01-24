@@ -109,9 +109,6 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
-    gmsh.write( "msh/model.msh" )
-    dim, tags = 3, [1,2,3]
-    for tag in tags:
-        name = gmsh.model.getEntityName( dim, tag )
-        print( name )
+    gmsh.write( "test/example.msh" )
+    gmsh.write( "test/example.stp" )
     gmsh.finalize()
