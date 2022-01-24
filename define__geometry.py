@@ -97,7 +97,7 @@ def define__cube( card=None ):
     # ------------------------------------------------- #
     xc,yc,zc  = card["xc"], card["yc"], card["zc"]
     if ( card["centering"] ):
-        xc,yc,zc  = xc-0.5*card["dx"], yc-0.5*card["dy"], zc-0.5*card["dz"]
+        xc,yc,zc  = xc-0.5*card["wx"], yc-0.5*card["wy"], zc-0.5*card["wz"]
     dx,dy,dz  = card["wx"]           , card["wy"]       , card["wz"]
     ret       = gmsh.model.occ.addBox( xc, yc, zc, dx, dy, dz )
     ret       = [(3,ret)]
