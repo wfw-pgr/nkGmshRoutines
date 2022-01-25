@@ -40,7 +40,7 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None ):
     if ( keys is None ):
         baseName = ( inpFile.split( "/" ) )[-1] + ".{0}"
         keys     = [ baseName.format( ik+1 ) for ik in range( nEntities ) ]
-    dimtags_loc = { keys[ik]:ret[ik] for ik in range( nEntities ) }
+    dimtags_loc = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
 
     # ------------------------------------------------- #
     # --- [5] merge dimtags / return                --- #
