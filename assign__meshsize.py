@@ -13,12 +13,19 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
+    if ( uniform is not None ):
+        gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", uniform )
+        gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", uniform )
+        return()
+    if ( meshFile is None ): sys.exit( "[assign__meshsize.py] meshFile == ???" )
+    if ( physFile is None ): sys.exit( "[assign__meshsize.py] physFile == ???" )
+    if ( dimtags  is None ): sys.exit( "[assign__meshsize.py] dimtags  == ???" )
+        
+    # ------------------------------------------------- #
+    # --- [2] obtain table & possible dimtags keys  --- #
+    # ------------------------------------------------- #
     meshconfig = lkt.load__keyedTable( inpFile=meshFile )
     physconfig = lkt.load__keyedTable( inpFile=physFile )
-
-    # ------------------------------------------------- #
-    # --- [2] obtain possible dimtags keys          --- #
-    # ------------------------------------------------- #
     physKeys     = list( physconfig.keys() )
     meshKeys     = list( meshconfig.keys() )
     aldtKeys     = []
@@ -527,6 +534,7 @@ if ( __name__=="__main__" ):
     gmsh.option.setNumber( "General.Terminal", 1 )
     gmsh.model.add( "model" )
 
+    
     target = "volu"
 
     if   ( target == "volu" ):
