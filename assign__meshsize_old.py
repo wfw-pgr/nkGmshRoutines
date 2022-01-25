@@ -1,147 +1,90 @@
 import os, sys, re
 import numpy         as np
+# import gmsh_api.gmsh as gmsh
 import gmsh
-import nkUtilities.load__keyedTable as lkt
 
 # ========================================================= #
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
-def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, target="volu" ):
+def assign__meshsize( meshsize_list=None, volumes_list=None, meshFile=None, physFile=None, \
+                      target="volu" ):
 
-    dim_, ent_ = 0, 1
-    
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
-    meshconfig = lkt.load__keyedTable( inpFile=meshFile )
-    physconfig = lkt.load__keyedTable( inpFile=physFile )
+    meshconfig = None
+    if ( ( meshsize_list is None ) and ( volumes_list is None ) ):
+        if   ( meshFile is None ):
+            sys.exit( "[assign__meshsize] give meshFile or, volumes_list & meshsize_list" )
+        elif ( physFile is None ):
+            print( "[assign__meshsize.py] physFile == ??? " )
+            sys.exit()
+            # meshconfig    = load__meshconfig( meshFile=meshFile )
+            # keys          = list( ( meshconfig[target] ).keys() )
+            # volumes_list  = [ (meshconfig[target]     )[key] for key in keys ]
+            # meshsize_list = [ (meshconfig["meshsize"])[key] for key in keys ]
+        else:
+            meshconfig     = load__mesh_and_phys_config( meshFile=meshFile, physFile=physFile )
+            keys           = list( ( meshconfig[target] ).keys() )
+            volumes_list   = [ (meshconfig[target]     )[key] for key in keys ]
+            meshsize_list1 = [ (meshconfig["meshsize1"])[key] for key in keys ]
+            meshsize_list2 = [ (meshconfig["meshsize2"])[key] for key in keys ]
+            meshTypes      = [ (meshconfig["meshTypes"] )[key] for key in keys ]
+            mathEvals      = [ (meshconfig["mathEvals"] )[key] for key in keys ]
+            minMeshSize    = meshconfig["minMeshSize"]
+            maxMeshSize    = meshconfig["maxMeshSize"]
 
     # ------------------------------------------------- #
-    # --- [2] obtain possible dimtags keys          --- #
-    # ------------------------------------------------- #
-    physKeys     = list( physconfig.keys() )
-    meshKeys     = list( meshconfig.keys() )
-    aldtKeys     = []
-    resolveDict  = {}
-    for physKey in physKeys:
-        dimtags_keys_loc  = ( physconfig[physKey] )["dimtags_keys"]
-        aldtKeys         += dimtags_keys_loc
-        stack             = { dimtag_key:physKey for dimtag_key in dimtags_keys_loc }
-        resolveDict       = { **resolveDict, **stack }
-        
-    # ------------------------------------------------- #
-    # --- [3] store mesh / phys info as lists       --- #
-    # ------------------------------------------------- #
-    dtagKeys     = []
-    entitiesList = []
-    physNumsList = []
-    for aldtKey in aldtKeys:
-        if ( aldtKey in dimtags ):
-            n_dimtag = len( dimtags[aldtKey] )
-            if   ( n_dimtag >= 2 ):
-                dtagKeys     += [ aldtKey+".{0}".format(ik+1) for ik in range( n_dimtag ) ]
-                entitiesList += [ dimtag[ent_] for dimtag in dimtags[aldtKey] ]
-                physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] \
-                                  for ik in range( n_dimtag ) ]
-            elif ( n_dimtag == 1 ):
-                dtagKeys     += [ aldtKey ]
-                entitiesList += [ dimtags[aldtKey][0][ent_] ]
-                physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] ]
-            else:
-                print( "[assign__meshsize.py] empty dimtags @ key = {0}".format( aldtKey ) )
-
-    # ------------------------------------------------- #
-    # --- [4] convert dictionary for mesh config    --- #
-    # ------------------------------------------------- #
-    mc           = meshconfig
-    meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshtype"]    for key in meshKeys }
-    resolMinDict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
-    resolMaxDict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
-    evaluateDict = { str(mc[key]["physNum"]):mc[key]["evaluation"]  for key in meshKeys }
-
-    # ------------------------------------------------- #
-    # --- [5] make list for every dimtags's keys    --- #
-    # ------------------------------------------------- #
-    meshTypes    = [ meshTypeDict[ str(physNum) ] for physNum in physNumsList ]
-    resolMins    = [ resolMinDict[ str(physNum) ] for physNum in physNumsList ]
-    resolMaxs    = [ resolMaxDict[ str(physNum) ] for physNum in physNumsList ]
-    mathEvals    = [ evaluateDict[ str(physNum) ] for physNum in physNumsList ]
-
-    # ------------------------------------------------- #
-    # --- [6] resolution (Min,Max) treatment        --- #
-    # ------------------------------------------------- #
-    resolMins    = [ None if type(val) is str else val for val in resolMins ]
-    resolMaxs    = [ None if type(val) is str else val for val in resolMaxs ]
-    minMeshSize  = min( [ val for val in resolMins if val is not None ] )
-    maxMeshSize  = max( [ val for val in resolMaxs if val is not None ] )
-    
-    # ------------------------------------------------- #
-    # --- [7] check entity numbers                  --- #
+    # --- [2] check entity numbers                  --- #
     # ------------------------------------------------- #
     itarget   = ( ["pts","line","surf","volu"] ).index( target )
     allEntities = gmsh.model.getEntities(itarget)
     allEntities = [ int(dimtag[1]) for dimtag in allEntities ]
-    missing     = list( set( entitiesList ) - set( allEntities  ) )
-    remains     = list( set( allEntities  ) - set( entitiesList ) )
-    print( "[assign__meshsize.py] listed entity nums :: {0} ".format( entitiesList ) )
+    missing     = list( set( volumes_list ) - set( allEntities  ) )
+    remains     = list( set( allEntities  ) - set( volumes_list ) )
+    print( "[assign__meshsize.py] listed volume nums :: {0} ".format( volumes_list ) )
     print( "[assign__meshsize.py] all Entities       :: {0} ".format( allEntities  ) )
     print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
-    
-    # ------------------------------------------------- #
-    # --- [8] error message for missing entities    --- #
-    # ------------------------------------------------- #
+
     if ( len( missing ) > 0 ):
-        print( "[assign__meshsize.py] missing            :: {0} ".format( missing  ) )
-        print( "[assign__meshsize.py] aborting, saving   :: current.msh "       )
-        gmsh.option.setNumber( "General.Verbosity"           ,           3 )
+        print( "[assign__meshsize.py] missing            :: {0} ".format( missing    ) )
+        print( "[assign__meshsize.py] aborting           :: current.msh "       )
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
         gmsh.model.mesh.generate(3)
         gmsh.write( "current.msh" )
         print( "[assign__meshsize.py] missing Entity Error STOP " )
         sys.exit()
-        
-    # ------------------------------------------------- #
-    # --- [9] error message for remains entities    --- #
-    # ------------------------------------------------- #
-    if ( len( remains ) > 0 ):
-        print( "[assign__meshsize.py] remains            :: {0}  ".format( remains  ) )
-        print( "[assign__meshsize.py] continue ???       >> (y/n)", end="" )
-        typing = ( ( input() ).strip() ).lower()
-        if ( typing == "y" ):
-            pass
-        else:
-            print( "[assign__meshsize.py] remains Entity Error STOP " )
-            sys.exit()
+    
                 
     # ------------------------------------------------- #
-    # --- [10] define each mesh field               --- #
+    # --- [2] define each mesh field                --- #
     # ------------------------------------------------- #
     fieldlist = []
-    for ik,vl in enumerate( entitiesList ):
-        ms  = [ resolMins[ik], resolMaxs[ik] ]
+    for ik,vl in enumerate( volumes_list ):
+        ms  = [ meshsize_list1[ik], meshsize_list2[ik] ]
         ret = assign__meshsize_on_each_volume( volume_num=vl, meshsize=ms, target=target, \
                                                meshType  =meshTypes[ik], \
                                                mathEval  =mathEvals[ik] )
         fieldlist.append( ret[1] )
 
     # ------------------------------------------------- #
-    # --- [11] define total field                   --- #
+    # --- [3] define total field                    --- #
     # ------------------------------------------------- #
     totalfield = gmsh.model.mesh.field.add( "Min" )
     gmsh.model.mesh.field.setNumbers( totalfield, "FieldsList", fieldlist )
     gmsh.model.mesh.field.setAsBackgroundMesh( totalfield )
 
     # ------------------------------------------------- #
-    # --- [12] define Min Max size                  --- #
+    # --- [4] define Min Max size                   --- #
     # ------------------------------------------------- #
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
     
     # ------------------------------------------------- #
-    # --- [13] return                               --- #
+    # --- [5] return                                --- #
     # ------------------------------------------------- #
-    ret = { "meshsize_list":resolMins, "entitiesList":entitiesList, \
+    ret = { "meshsize_list":meshsize_list1, "volumes_list":volumes_list, \
             "field_list":fieldlist }
     return( ret )
     
@@ -291,230 +234,230 @@ def acquire__mathEval( volume_num=None, meshType=None, itarget=None, \
     return( mathEval )
 
 
-# # ========================================================= #
-# # ===  load mesh and physical number config             === #
-# # ========================================================= #
-# def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, surf={}, volu={}, loadonly=False, \
-#                                 ptsPhys={}, linePhys={}, surfPhys={}, voluPhys={} ):
+# ========================================================= #
+# ===  load mesh and physical number config             === #
+# ========================================================= #
+def load__mesh_and_phys_config( meshFile=None, physFile=None, pts={}, line={}, surf={}, volu={}, loadonly=False, \
+                                ptsPhys={}, linePhys={}, surfPhys={}, voluPhys={} ):
 
-#     ptsDim, lineDim, surfDim, voluDim = 0, 1, 2, 3
+    ptsDim, lineDim, surfDim, voluDim = 0, 1, 2, 3
     
-#     # ------------------------------------------------- #
-#     # --- [1] Arguments                             --- #
-#     # ------------------------------------------------- #
-#     if ( meshFile is None ): sys.exit( "[load__mesh_and_phys_config] meshFile == ???" )
-#     if ( physFile is None ): sys.exit( "[load__mesh_and_phys_config] physFile == ???" )
+    # ------------------------------------------------- #
+    # --- [1] Arguments                             --- #
+    # ------------------------------------------------- #
+    if ( meshFile is None ): sys.exit( "[load__mesh_and_phys_config] meshFile == ???" )
+    if ( physFile is None ): sys.exit( "[load__mesh_and_phys_config] physFile == ???" )
     
-#     # ------------------------------------------------- #
-#     # --- [2] Data Load                             --- #
-#     # ------------------------------------------------- #
-#     with open( meshFile ) as f:
-#         meshtable = f.readlines()
-#     with open( physFile ) as f:
-#         phystable = f.readlines()
+    # ------------------------------------------------- #
+    # --- [2] Data Load                             --- #
+    # ------------------------------------------------- #
+    with open( meshFile ) as f:
+        meshtable = f.readlines()
+    with open( physFile ) as f:
+        phystable = f.readlines()
 
-#     # ------------------------------------------------- #
-#     # --- [3] generate Dictionary ( physical Num )  --- #
-#     # ------------------------------------------------- #
-#     ptsPhysTable  = {}
-#     linePhysTable = {}
-#     surfPhysTable = {}
-#     voluPhysTable = {}
-#     physNums      = {}
-#     vnames        = []
+    # ------------------------------------------------- #
+    # --- [3] generate Dictionary ( physical Num )  --- #
+    # ------------------------------------------------- #
+    ptsPhysTable  = {}
+    linePhysTable = {}
+    surfPhysTable = {}
+    voluPhysTable = {}
+    physNums      = {}
+    vnames        = []
 
-#     for row in phystable:
-#         if ( len( row.strip() ) == 0 ):
-#             continue
-#         if ( (row.strip())[0] == "#" ):
-#             continue
-#         str_venti  = row.split()[2]
-#         venti_list = split__values( string=str_venti )
-#         venti_list = [ int( venti ) for venti in venti_list ]
-#         n_add      = "_{0}"
-#         # -------- old ------------------------------- #
-#         # if   ( len( venti.split("-") ) >= 2 ):
-#         #     ifrom = int( ( venti.split("-") )[0] )
-#         #     iuntl = int( ( venti.split("-") )[1] )
-#         #     n_add = "_{0}"
-#         # elif ( len( venti.split("-") ) == 1 ):
-#         #     ifrom = int( venti )
-#         #     iuntl = int( venti )
-#         #     n_add = ""
-#         # -------- old ------------------------------- #
+    for row in phystable:
+        if ( len( row.strip() ) == 0 ):
+            continue
+        if ( (row.strip())[0] == "#" ):
+            continue
+        str_venti  = row.split()[2]
+        venti_list = split__values( string=str_venti )
+        venti_list = [ int( venti ) for venti in venti_list ]
+        n_add      = "_{0}"
+        # -------- old ------------------------------- #
+        # if   ( len( venti.split("-") ) >= 2 ):
+        #     ifrom = int( ( venti.split("-") )[0] )
+        #     iuntl = int( ( venti.split("-") )[1] )
+        #     n_add = "_{0}"
+        # elif ( len( venti.split("-") ) == 1 ):
+        #     ifrom = int( venti )
+        #     iuntl = int( venti )
+        #     n_add = ""
+        # -------- old ------------------------------- #
             
-#         for venti in venti_list:
+        for venti in venti_list:
             
-#             # -- [3-1] vname, vtype, venum  -- #
-#             vname =        ( row.split() )[0] + n_add.format( venti )
-#             vtype =        ( row.split() )[1]
-#             vphys =        ( row.split() )[3]
+            # -- [3-1] vname, vtype, venum  -- #
+            vname =        ( row.split() )[0] + n_add.format( venti )
+            vtype =        ( row.split() )[1]
+            vphys =        ( row.split() )[3]
             
-#             # -- [3-2] vtype check          -- #
-#             if   ( vtype.lower() == 'pts'    ):
-#                 pts [vname]     = venti
-#                 if ( vphys in ptsPhysTable ):
-#                     ( ptsPhysTable[vphys] ).append( venti )
-#                 else:
-#                     ptsPhysTable[vphys] = [ venti ]
+            # -- [3-2] vtype check          -- #
+            if   ( vtype.lower() == 'pts'    ):
+                pts [vname]     = venti
+                if ( vphys in ptsPhysTable ):
+                    ( ptsPhysTable[vphys] ).append( venti )
+                else:
+                    ptsPhysTable[vphys] = [ venti ]
             
-#             elif ( vtype.lower() == 'line'   ):
-#                 line[vname]      = venti
-#                 if ( vphys in linePhysTable ):
-#                     ( linePhysTable[vphys] ).append( venti )
-#                 else:
-#                     linePhysTable[vphys] = [ venti ]
+            elif ( vtype.lower() == 'line'   ):
+                line[vname]      = venti
+                if ( vphys in linePhysTable ):
+                    ( linePhysTable[vphys] ).append( venti )
+                else:
+                    linePhysTable[vphys] = [ venti ]
                     
-#             elif ( vtype.lower() == 'surf'   ):
-#                 surf[vname]      = venti
-#                 if ( vphys in surfPhysTable ):
-#                     ( surfPhysTable[vphys] ).append( venti )
-#                 else:
-#                     surfPhysTable[vphys] = [ venti ]
+            elif ( vtype.lower() == 'surf'   ):
+                surf[vname]      = venti
+                if ( vphys in surfPhysTable ):
+                    ( surfPhysTable[vphys] ).append( venti )
+                else:
+                    surfPhysTable[vphys] = [ venti ]
                     
-#             elif ( vtype.lower() == 'volu'   ):
-#                 volu[vname]      = venti
-#                 if ( vphys in voluPhysTable ):
-#                     ( voluPhysTable[vphys] ).append( venti )
-#                 else:
-#                     voluPhysTable[vphys] = [ venti ]
+            elif ( vtype.lower() == 'volu'   ):
+                volu[vname]      = venti
+                if ( vphys in voluPhysTable ):
+                    ( voluPhysTable[vphys] ).append( venti )
+                else:
+                    voluPhysTable[vphys] = [ venti ]
                 
-#             else:
-#                 print("[ERROR] Unknown Object in load__mesh_and_phys_config :: {0}".format(physFile) )
-#                 sys.exit()
+            else:
+                print("[ERROR] Unknown Object in load__mesh_and_phys_config :: {0}".format(physFile) )
+                sys.exit()
 
-#             physNums[vname] = vphys
-#             vnames.append( vname )
+            physNums[vname] = vphys
+            vnames.append( vname )
 
 
-#     # ------------------------------------------------- #
-#     # --- [4] register physical number              --- #
-#     # ------------------------------------------------- #
+    # ------------------------------------------------- #
+    # --- [4] register physical number              --- #
+    # ------------------------------------------------- #
 
-#     if ( loadonly is False ):
-#         for key in list(  ptsPhysTable.keys() ):
-#             ptsPhys[key]  = gmsh.model.addPhysicalGroup( ptsDim, ptsPhysTable[key], \
-#                                                          tag=int(key) )
-#         for key in list( linePhysTable.keys() ):
-#             linePhys[key] = gmsh.model.addPhysicalGroup( lineDim, linePhysTable[key], \
-#                                                          tag=int(key) )
-#         for key in list( surfPhysTable.keys() ):
-#             surfPhys[key] = gmsh.model.addPhysicalGroup( surfDim, surfPhysTable[key], \
-#                                                          tag=int(key) )
-#         for key in list( voluPhysTable.keys() ):
-#             voluPhys[key] = gmsh.model.addPhysicalGroup( voluDim, voluPhysTable[key], \
-#                                                          tag=int(key) )
+    if ( loadonly is False ):
+        for key in list(  ptsPhysTable.keys() ):
+            ptsPhys[key]  = gmsh.model.addPhysicalGroup( ptsDim, ptsPhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( linePhysTable.keys() ):
+            linePhys[key] = gmsh.model.addPhysicalGroup( lineDim, linePhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( surfPhysTable.keys() ):
+            surfPhys[key] = gmsh.model.addPhysicalGroup( surfDim, surfPhysTable[key], \
+                                                         tag=int(key) )
+        for key in list( voluPhysTable.keys() ):
+            voluPhys[key] = gmsh.model.addPhysicalGroup( voluDim, voluPhysTable[key], \
+                                                         tag=int(key) )
 
-#     # ------------------------------------------------- #
-#     # --- [3] generate Dictionary ( mesh )          --- #
-#     # ------------------------------------------------- #
+    # ------------------------------------------------- #
+    # --- [3] generate Dictionary ( mesh )          --- #
+    # ------------------------------------------------- #
 
-#     physMeshTable1 = {}
-#     physMeshTable2 = {}
-#     meshTypeTable_ = {}
-#     mathEvalTable_ = {}
+    physMeshTable1 = {}
+    physMeshTable2 = {}
+    meshTypeTable_ = {}
+    mathEvalTable_ = {}
 
-#     for row in meshtable:
-#         if ( len( row.strip() ) == 0 ):
-#             continue
-#         if ( (row.strip())[0] == "#" ):
-#             continue
-#         # -- [3-1] vname, vtype, venum  -- #
-#         vname  =        ( row.split() )[0]
-#         vphys  =        ( row.split() )[1]
-#         vtype  =        ( row.split() )[2]
-#         vmesh1 =        ( row.split() )[3]
-#         vmesh2 =        ( row.split() )[4]
-#         veval  =        ( row.split() )[5]
+    for row in meshtable:
+        if ( len( row.strip() ) == 0 ):
+            continue
+        if ( (row.strip())[0] == "#" ):
+            continue
+        # -- [3-1] vname, vtype, venum  -- #
+        vname  =        ( row.split() )[0]
+        vphys  =        ( row.split() )[1]
+        vtype  =        ( row.split() )[2]
+        vmesh1 =        ( row.split() )[3]
+        vmesh2 =        ( row.split() )[4]
+        veval  =        ( row.split() )[5]
 
-#         try:
-#             vmesh1 = float( vmesh1 )
-#         except ValueError:
-#             vmesh1 = None
+        try:
+            vmesh1 = float( vmesh1 )
+        except ValueError:
+            vmesh1 = None
         
-#         try:
-#             vmesh2 = float( vmesh2 )
-#         except ValueError:
-#             vmesh2 = None
+        try:
+            vmesh2 = float( vmesh2 )
+        except ValueError:
+            vmesh2 = None
         
-#         if ( not( vphys in physMeshTable1 ) ):
-#             physMeshTable1[vphys] = vmesh1
-#             physMeshTable2[vphys] = vmesh2
-#             meshTypeTable_[vphys] = vtype
-#             mathEvalTable_[vphys] = veval
-#         else:
-#             print( "[assign__meshsize.py] duplicated keys :: {0}  [ERROR] ".format( vname ) )
-#             sys.exit()
-#     meshConf_has  = set( list( physMeshTable1.keys() ) )
-#     physNums_has  = set( list( physNums.values() ) )
-#     NoMeshConstra = list( physNums_has - meshConf_has )
-#     NoPhysDefinit = list( meshConf_has - physNums_has )
-#     CommonPhysNum = list( meshConf_has & physNums_has )
+        if ( not( vphys in physMeshTable1 ) ):
+            physMeshTable1[vphys] = vmesh1
+            physMeshTable2[vphys] = vmesh2
+            meshTypeTable_[vphys] = vtype
+            mathEvalTable_[vphys] = veval
+        else:
+            print( "[assign__meshsize.py] duplicated keys :: {0}  [ERROR] ".format( vname ) )
+            sys.exit()
+    meshConf_has  = set( list( physMeshTable1.keys() ) )
+    physNums_has  = set( list( physNums.values() ) )
+    NoMeshConstra = list( physNums_has - meshConf_has )
+    NoPhysDefinit = list( meshConf_has - physNums_has )
+    CommonPhysNum = list( meshConf_has & physNums_has )
     
-#     if ( len( NoMeshConstra ) > 0 ):
-#         print()
-#         print( "[assign__meshsize.py] No Mesh Constraints   :: {0} ".format( NoMeshConstra ) )
-#         print()
-#     if ( len( NoPhysDefinit ) > 0 ):
-#         print()
-#         print( "[assign__meshsize.py] No PhysNum Definition :: {0} ".format( NoPhysDefinit ) )
-#         print()
-#         sys.exit()
+    if ( len( NoMeshConstra ) > 0 ):
+        print()
+        print( "[assign__meshsize.py] No Mesh Constraints   :: {0} ".format( NoMeshConstra ) )
+        print()
+    if ( len( NoPhysDefinit ) > 0 ):
+        print()
+        print( "[assign__meshsize.py] No PhysNum Definition :: {0} ".format( NoPhysDefinit ) )
+        print()
+        sys.exit()
 
-#     vnames_        = [ key for key in vnames if physNums[key] in CommonPhysNum ]
-#     meshsizeTable1 = { key: physMeshTable1[ physNums[key] ] for key in vnames_ }
-#     meshsizeTable2 = { key: physMeshTable2[ physNums[key] ] for key in vnames_ }
-#     meshTypeTable  = { key: meshTypeTable_[ physNums[key] ] for key in vnames_ }
-#     mathEvalTable  = { key: mathEvalTable_[ physNums[key] ] for key in vnames_ }
+    vnames_        = [ key for key in vnames if physNums[key] in CommonPhysNum ]
+    meshsizeTable1 = { key: physMeshTable1[ physNums[key] ] for key in vnames_ }
+    meshsizeTable2 = { key: physMeshTable2[ physNums[key] ] for key in vnames_ }
+    meshTypeTable  = { key: meshTypeTable_[ physNums[key] ] for key in vnames_ }
+    mathEvalTable  = { key: mathEvalTable_[ physNums[key] ] for key in vnames_ }
 
-#     meshsizelist1  = [ value for value in list( meshsizeTable1.values() ) if value is not None ]
-#     meshsizelist2  = [ value for value in list( meshsizeTable2.values() ) if value is not None ]
-#     minMeshSize    = np.min( meshsizelist1 + meshsizelist2 )
-#     maxMeshSize    = np.max( meshsizelist1 + meshsizelist2 )
+    meshsizelist1  = [ value for value in list( meshsizeTable1.values() ) if value is not None ]
+    meshsizelist2  = [ value for value in list( meshsizeTable2.values() ) if value is not None ]
+    minMeshSize    = np.min( meshsizelist1 + meshsizelist2 )
+    maxMeshSize    = np.max( meshsizelist1 + meshsizelist2 )
     
-#     # ------------------------------------------------- #
-#     # --- [5] return                                --- #
-#     # ------------------------------------------------- #
-#     ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
-#             "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
-#             "meshsize1":meshsizeTable1, "meshsize2":meshsizeTable2, \
-#             "mathEvals":mathEvalTable , "meshTypes" :meshTypeTable,
-#             "minMeshSize":minMeshSize, "maxMeshSize":maxMeshSize, "keys":vnames }
-#     return( ret )
+    # ------------------------------------------------- #
+    # --- [5] return                                --- #
+    # ------------------------------------------------- #
+    ret = { "pts"    :pts    , "line"    :line    , "surf"    :surf    , "volu"    :volu    , \
+            "ptsPhys":ptsPhys, "linePhys":linePhys, "surfPhys":surfPhys, "voluPhys":voluPhys, \
+            "meshsize1":meshsizeTable1, "meshsize2":meshsizeTable2, \
+            "mathEvals":mathEvalTable , "meshTypes" :meshTypeTable,
+            "minMeshSize":minMeshSize, "maxMeshSize":maxMeshSize, "keys":vnames }
+    return( ret )
 
 
 
 
-# # ========================================================= #
-# # ===  split__values.py                                 === #
-# # ========================================================= #
+# ========================================================= #
+# ===  split__values.py                                 === #
+# ========================================================= #
 
-# def split__values( string=None ):
+def split__values( string=None ):
 
-#     # ------------------------------------------------- #
-#     # --- [1] arguments                             --- #
-#     # ------------------------------------------------- #
-#     if ( string is None ): sys.exit( "[split__values] string == ???" )
+    # ------------------------------------------------- #
+    # --- [1] arguments                             --- #
+    # ------------------------------------------------- #
+    if ( string is None ): sys.exit( "[split__values] string == ???" )
 
-#     # ------------------------------------------------- #
-#     # --- [2] separation                            --- #
-#     # ------------------------------------------------- #
-#     #  -- [2-1] comma separation                    --  #
-#     cs_list = string.split( "," )
+    # ------------------------------------------------- #
+    # --- [2] separation                            --- #
+    # ------------------------------------------------- #
+    #  -- [2-1] comma separation                    --  #
+    cs_list = string.split( "," )
 
-#     #  -- [2-2] hyphone separation                  --  #
-#     hp_list = []
-#     for sval in cs_list:
-#         spl = sval.split("-")
-#         if   ( len( spl ) == 1 ):
-#             hp_list += spl
-#         elif ( len( spl ) == 2 ):
-#             hp_list += [ str(val) for val in range( int(spl[0]), int(spl[1])+1 ) ]
-#         else:
-#             sys.exit( "[split__values.py] illegal number of hyphone '-'. " )
+    #  -- [2-2] hyphone separation                  --  #
+    hp_list = []
+    for sval in cs_list:
+        spl = sval.split("-")
+        if   ( len( spl ) == 1 ):
+            hp_list += spl
+        elif ( len( spl ) == 2 ):
+            hp_list += [ str(val) for val in range( int(spl[0]), int(spl[1])+1 ) ]
+        else:
+            sys.exit( "[split__values.py] illegal number of hyphone '-'. " )
 
-#     #  -- [2-3] return value                        --  #
-#     return( hp_list )
+    #  -- [2-3] return value                        --  #
+    return( hp_list )
 
 
 # ========================================================= #
@@ -527,16 +470,16 @@ if ( __name__=="__main__" ):
     gmsh.option.setNumber( "General.Terminal", 1 )
     gmsh.model.add( "model" )
 
-    target = "volu"
+    sample = "surf"
 
-    if   ( target == "volu" ):
+    if   ( sample == "volu" ):
         physFile = "test/phys.conf"
         meshFile = "test/mesh.conf"
         gmsh.model.occ.addBox( -0.5, -0.5, -0.5, \
                                +1.0, +1.0, +1.0 )
         gmsh.model.occ.addBox( -0.0, -0.0, -0.0, \
                                +1.0, +1.0, +1.0 )
-    elif ( target == "surf" ):
+    elif ( sample == "surf" ):
         physFile = "test/phys_2d.conf"
         meshFile = "test/mesh_2d.conf"
         circle1 = gmsh.model.occ.addCircle( 0.,  0.0, 0., 1.0 )
@@ -552,15 +495,13 @@ if ( __name__=="__main__" ):
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
-
-    dimtags = { "cube01":[(3,1)], "cube02":[(3,2)], "cube03":[(3,3)] }
     
-    assign__meshsize( dimtags=dimtags, meshFile=meshFile, physFile=physFile, target=target )
+    assign__meshsize( meshFile=meshFile, physFile=physFile, target="surf" )
     gmsh.model.occ.synchronize()
 
-    if   ( target == "volu" ):
+    if   ( sample == "volu" ):
         gmsh.model.mesh.generate(3)
-    elif ( target == "surf" ):
+    elif ( sample == "surf" ):
         gmsh.model.mesh.generate(2)
     gmsh.write( "test/model.msh" )
     gmsh.finalize()

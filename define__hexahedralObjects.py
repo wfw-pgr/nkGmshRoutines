@@ -1,7 +1,6 @@
 import os, sys
 import numpy as np
 import gmsh
-# import gmsh_api.gmsh as gmsh
 import nkGmshRoutines.generate__hexahedron as ghh
 import nkGmshRoutines.generate__fanShape   as fan
 
@@ -124,9 +123,10 @@ if ( __name__=="__main__" ):
     # --- [1] initialization of the gmsh            --- #
     # ------------------------------------------------- #
     gmsh.initialize()
-    gmsh.option.setNumber( "General.Terminal", 1 )
-    gmsh.option.setNumber( "Mesh.Algorithm"  , 5 )
-    gmsh.option.setNumber( "Mesh.Algorithm3D", 4 )
+    gmsh.option.setNumber( "General.Terminal" , 1 )
+    gmsh.option.setNumber( "General.Verbosity", 3 )
+    gmsh.option.setNumber( "Mesh.Algorithm"   , 5 )
+    gmsh.option.setNumber( "Mesh.Algorithm3D" , 4 )
     gmsh.option.setNumber( "Mesh.SubdivisionAlgorithm", 0 )
     gmsh.model.add( "model" )
     
@@ -152,4 +152,5 @@ if ( __name__=="__main__" ):
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
     gmsh.write( "test/mcModel.msh" )
+    print( ret )
     gmsh.finalize()
