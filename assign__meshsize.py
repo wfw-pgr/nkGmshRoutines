@@ -8,7 +8,9 @@ import nkUtilities.load__keyedTable as lkt
 # ========================================================= #
 def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, target="volu" ):
 
-    dim_, ent_ = 0, 1
+    dim_   , ent_    = 0, 1
+    ptsDim , lineDim = 0, 1
+    surfDim, voluDim = 2, 3
     
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
@@ -42,6 +44,8 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     dtagKeys     = []
     entitiesList = []
     physNumsList = []
+    entitiesDict = {}
+    physNumsDict = {}
     for aldtKey in aldtKeys:
         if ( aldtKey in dimtags ):
             n_dimtag = len( dimtags[aldtKey] )
@@ -50,13 +54,20 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
                 entitiesList += [ dimtag[ent_] for dimtag in dimtags[aldtKey] ]
                 physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] \
                                   for ik in range( n_dimtag ) ]
+                for ik in range( n_dimtag ):
+                    key_loc               = aldtKey+".{0}".format(ik+1)
+                    entitiesDict[key_loc] = ( dimtags[aldtKey] )[ik][ent_]
+                    physNumsDict[key_loc] = physconfig[ resolveDict[aldtKey] ]["physNum"]
+                
             elif ( n_dimtag == 1 ):
                 dtagKeys     += [ aldtKey ]
                 entitiesList += [ dimtags[aldtKey][0][ent_] ]
                 physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] ]
+                entitiesDict[aldtKey] = dimtags[aldtKey][0][ent_]
+                physNumsDict[aldtKey] = physconfig[ resolveDict[aldtKey] ]["physNum"]
             else:
                 print( "[assign__meshsize.py] empty dimtags @ key = {0}".format( aldtKey ) )
-
+                
     # ------------------------------------------------- #
     # --- [4] convert dictionary for mesh config    --- #
     # ------------------------------------------------- #
@@ -67,7 +78,47 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     evaluateDict = { str(mc[key]["physNum"]):mc[key]["evaluation"]  for key in meshKeys }
 
     # ------------------------------------------------- #
-    # --- [5] make list for every dimtags's keys    --- #
+    # --- [5] make physNum <=> entityNum table      --- #
+    # ------------------------------------------------- #
+    ptsPhys, linePhys, surfPhys, voluPhys = {}, {}, {}, {}
+    for dtagKey in dtagKeys:
+        physType = str( physconfig[ resolveDict[dtagKey] ]["type"]    )
+        s_phys   = str( physconfig[ resolveDict[dtagKey] ]["physNum"] )
+        if ( physType.lower() == "pts" ):
+            if ( s_phys in  ptsPhys ):
+                ptsPhys[s_phys]  += [ entitiesDict[dtagKey] ]
+            else:
+                ptsPhys[s_phys]   = [ entitiesDict[dtagKey] ]
+        if ( physType.lower() == "line" ):
+            if ( s_phys in linePhys ):
+                linePhys[s_phys] += [ entitiesDict[dtagKey] ]
+            else:
+                linePhys[s_phys]  = [ entitiesDict[dtagKey] ]
+        if ( physType.lower() == "surf" ):
+            if ( s_phys in surfPhys ):
+                surfPhys[s_phys] += [ entitiesDict[dtagKey] ]
+            else:
+                surfPhys[s_phys]  = [ entitiesDict[dtagKey] ]
+        if ( physType.lower() == "volu" ):
+            if ( s_phys in voluPhys ):
+                voluPhys[s_phys] += [ entitiesDict[dtagKey] ]
+            else:
+                voluPhys[s_phys]  = [ entitiesDict[dtagKey] ]
+
+    # ------------------------------------------------- #
+    # --- [6] physical grouping                     --- #
+    # ------------------------------------------------- #
+    for s_phys in list(  ptsPhys.keys() ):
+        gmsh.model.addPhysicalGroup(  ptsDim,  ptsPhys[str(s_phys)], tag=int(s_phys) )
+    for s_phys in list( linePhys.keys() ):
+        gmsh.model.addPhysicalGroup( lineDim, linePhys[str(s_phys)], tag=int(s_phys) )
+    for s_phys in list( surfPhys.keys() ):
+        gmsh.model.addPhysicalGroup( surfDim, surfPhys[str(s_phys)], tag=int(s_phys) )
+    for s_phys in list( voluPhys.keys() ):
+        gmsh.model.addPhysicalGroup( voluDim, voluPhys[str(s_phys)], tag=int(s_phys) )
+    
+    # ------------------------------------------------- #
+    # --- [7] make list for every dimtags's keys    --- #
     # ------------------------------------------------- #
     meshTypes    = [ meshTypeDict[ str(physNum) ] for physNum in physNumsList ]
     resolMins    = [ resolMinDict[ str(physNum) ] for physNum in physNumsList ]
@@ -75,7 +126,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     mathEvals    = [ evaluateDict[ str(physNum) ] for physNum in physNumsList ]
 
     # ------------------------------------------------- #
-    # --- [6] resolution (Min,Max) treatment        --- #
+    # --- [8] resolution (Min,Max) treatment        --- #
     # ------------------------------------------------- #
     resolMins    = [ None if type(val) is str else val for val in resolMins ]
     resolMaxs    = [ None if type(val) is str else val for val in resolMaxs ]
@@ -83,7 +134,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     maxMeshSize  = max( [ val for val in resolMaxs if val is not None ] )
     
     # ------------------------------------------------- #
-    # --- [7] check entity numbers                  --- #
+    # --- [9] check entity numbers                  --- #
     # ------------------------------------------------- #
     itarget   = ( ["pts","line","surf","volu"] ).index( target )
     allEntities = gmsh.model.getEntities(itarget)
@@ -95,7 +146,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
     
     # ------------------------------------------------- #
-    # --- [8] error message for missing entities    --- #
+    # --- [10] error message for missing entities   --- #
     # ------------------------------------------------- #
     if ( len( missing ) > 0 ):
         print( "[assign__meshsize.py] missing            :: {0} ".format( missing  ) )
@@ -109,7 +160,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
         sys.exit()
         
     # ------------------------------------------------- #
-    # --- [9] error message for remains entities    --- #
+    # --- [11] error message for remains entities   --- #
     # ------------------------------------------------- #
     if ( len( remains ) > 0 ):
         print( "[assign__meshsize.py] remains            :: {0}  ".format( remains  ) )
@@ -122,7 +173,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
             sys.exit()
                 
     # ------------------------------------------------- #
-    # --- [10] define each mesh field               --- #
+    # --- [12] define each mesh field               --- #
     # ------------------------------------------------- #
     fieldlist = []
     for ik,vl in enumerate( entitiesList ):
@@ -133,20 +184,20 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
         fieldlist.append( ret[1] )
 
     # ------------------------------------------------- #
-    # --- [11] define total field                   --- #
+    # --- [13] define total field                   --- #
     # ------------------------------------------------- #
     totalfield = gmsh.model.mesh.field.add( "Min" )
     gmsh.model.mesh.field.setNumbers( totalfield, "FieldsList", fieldlist )
     gmsh.model.mesh.field.setAsBackgroundMesh( totalfield )
 
     # ------------------------------------------------- #
-    # --- [12] define Min Max size                  --- #
+    # --- [14] define Min Max size                  --- #
     # ------------------------------------------------- #
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
     gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
     
     # ------------------------------------------------- #
-    # --- [13] return                               --- #
+    # --- [15] return                               --- #
     # ------------------------------------------------- #
     ret = { "meshsize_list":resolMins, "entitiesList":entitiesList, \
             "field_list":fieldlist }
