@@ -56,8 +56,10 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
                                   for ik in range( n_dimtag ) ]
                 for ik in range( n_dimtag ):
                     key_loc               = aldtKey+".{0}".format(ik+1)
+                    resolveDict[key_loc]  = resolveDict[aldtKey]
                     entitiesDict[key_loc] = ( dimtags[aldtKey] )[ik][ent_]
                     physNumsDict[key_loc] = physconfig[ resolveDict[aldtKey] ]["physNum"]
+                # resolveDict.pop( aldtKey ) # to erase old key
                 
             elif ( n_dimtag == 1 ):
                 dtagKeys     += [ aldtKey ]
