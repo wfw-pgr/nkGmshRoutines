@@ -61,7 +61,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # --- [4] convert dictionary for mesh config    --- #
     # ------------------------------------------------- #
     mc           = meshconfig
-    meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshtype"]    for key in meshKeys }
+    meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshType"]    for key in meshKeys }
     resolMinDict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
     resolMaxDict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
     evaluateDict = { str(mc[key]["physNum"]):mc[key]["evaluation"]  for key in meshKeys }
