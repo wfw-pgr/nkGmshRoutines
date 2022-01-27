@@ -55,7 +55,6 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
         # ------------------------------------------------- #
         if ( "transform_type" in card ):
             ret     = tra.transform__affine ( dimtags=dimtags, table=table_loc )
-            dimtags = { **dimtags, **ret }
             nop     = False
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #

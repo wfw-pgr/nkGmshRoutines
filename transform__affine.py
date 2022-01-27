@@ -29,9 +29,8 @@ def transform__affine( inpFile="test/transform.conf", dimtags=None, keys=None, \
         card = table[key]
         if ( "transform_type" in card ):
             if ( card["transform_type"].lower() == "affine" ):
-                dimtags[key] = affine__transform( dimtags=dimtags, card=card )
-        
-    return( dimtags )
+                ret = affine__transform( dimtags=dimtags, card=card )
+    return()
 
 
 # ========================================================= #
