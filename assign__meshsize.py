@@ -75,8 +75,8 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # ------------------------------------------------- #
     mc           = meshconfig
     meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshType"]    for key in meshKeys }
-    resolMinDict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
-    resolMaxDict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
+    resolut1Dict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
+    resolut2Dict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
     evaluateDict = { str(mc[key]["physNum"]):mc[key]["evaluation"]  for key in meshKeys }
 
     # ------------------------------------------------- #
@@ -123,17 +123,17 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # --- [7] make list for every dimtags's keys    --- #
     # ------------------------------------------------- #
     meshTypes    = [ meshTypeDict[ str(physNum) ] for physNum in physNumsList ]
-    resolMins    = [ resolMinDict[ str(physNum) ] for physNum in physNumsList ]
-    resolMaxs    = [ resolMaxDict[ str(physNum) ] for physNum in physNumsList ]
+    resolute1    = [ resolut1Dict[ str(physNum) ] for physNum in physNumsList ]
+    resolute2    = [ resolut2Dict[ str(physNum) ] for physNum in physNumsList ]
     mathEvals    = [ evaluateDict[ str(physNum) ] for physNum in physNumsList ]
 
     # ------------------------------------------------- #
     # --- [8] resolution (Min,Max) treatment        --- #
     # ------------------------------------------------- #
-    resolMins    = [ None if type(val) is str else val for val in resolMins ]
-    resolMaxs    = [ None if type(val) is str else val for val in resolMaxs ]
-    minMeshSize  = min( [ val for val in resolMins if val is not None ] )
-    maxMeshSize  = max( [ val for val in resolMaxs if val is not None ] )
+    resolute1    = [ None if type(val) is str else val for val in resolute1 ]
+    resolute2    = [ None if type(val) is str else val for val in resolute2 ]
+    minMeshSize  = min( [ val for val in resolute1 if val is not None ] + [ val for val in resolute2 if val is not None ] )
+    maxMeshSize  = max( [ val for val in resolute1 if val is not None ] + [ val for val in resolute2 if val is not None ] )
     print( "[assign__meshsize.py] Min. of MeshSize   :: {0} ".format( minMeshSize ) )
     print( "[assign__meshsize.py] Max. of MeshSize   :: {0} ".format( maxMeshSize ) )
     print()
@@ -153,8 +153,8 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     print( "[assign__meshsize.py] Mesh Configuration " )
     print( "  key :: type  min  max  mathEval" )
     for ik, physNum in enumerate(physNumsList):
-        print( "  {0} :: {1}  {2}  {3}  {4}".format( physNum, meshTypes[ik], resolMins[ik], \
-                                                     resolMaxs[ik], mathEvals[ik] ) )
+        print( "  {0} :: {1}  {2}  {3}  {4}".format( physNum, meshTypes[ik], resolute1[ik], \
+                                                     resolute2[ik], mathEvals[ik] ) )
     print()
     
     # ------------------------------------------------- #
@@ -189,7 +189,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # ------------------------------------------------- #
     fieldlist = []
     for ik,vl in enumerate( entitiesList ):
-        ms  = [ resolMins[ik], resolMaxs[ik] ]
+        ms  = [ resolute1[ik], resolute2[ik] ]
         ret = assign__meshsize_on_each_volume( volume_num=vl, meshsize=ms, target=target, \
                                                meshType  =meshTypes[ik], \
                                                mathEval  =mathEvals[ik] )
@@ -211,7 +211,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # ------------------------------------------------- #
     # --- [15] return                               --- #
     # ------------------------------------------------- #
-    ret = { "meshsize_list":resolMins, "entitiesList":entitiesList, \
+    ret = { "meshsize_list":resolute1, "entitiesList":entitiesList, \
             "field_list":fieldlist }
     return( ret )
     
