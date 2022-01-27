@@ -134,6 +134,9 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     resolMaxs    = [ None if type(val) is str else val for val in resolMaxs ]
     minMeshSize  = min( [ val for val in resolMins if val is not None ] )
     maxMeshSize  = max( [ val for val in resolMaxs if val is not None ] )
+    print( "[assign__meshsize.py] Min. of MeshSize   :: {0} ".format( minMeshSize ) )
+    print( "[assign__meshsize.py] Max. of MeshSize   :: {0} ".format( maxMeshSize ) )
+    print()
     
     # ------------------------------------------------- #
     # --- [9] check entity numbers                  --- #
@@ -146,6 +149,13 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     print( "[assign__meshsize.py] listed entity nums :: {0} ".format( entitiesList ) )
     print( "[assign__meshsize.py] all Entities       :: {0} ".format( allEntities  ) )
     print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
+    print()
+    print( "[assign__meshsize.py] Mesh Configuration " )
+    print( "  key :: type  min  max  mathEval" )
+    for ik, physNum in enumerate(physNumsList):
+        print( "  {0} :: {1}  {2}  {3}  {4}".format( physNum, meshTypes[ik], resolMins[ik], \
+                                                     resolMaxs[ik], mathEvals[ik] ) )
+    print()
     
     # ------------------------------------------------- #
     # --- [10] error message for missing entities   --- #
