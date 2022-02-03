@@ -22,7 +22,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     if ( meshFile is None ): sys.exit( "[assign__meshsize.py] meshFile == ???" )
     if ( physFile is None ): sys.exit( "[assign__meshsize.py] physFile == ???" )
     if ( dimtags  is None ): sys.exit( "[assign__meshsize.py] dimtags  == ???" )
-        
+    
     # ------------------------------------------------- #
     # --- [2] obtain table & possible dimtags keys  --- #
     # ------------------------------------------------- #
@@ -176,7 +176,15 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # ------------------------------------------------- #
     if ( len( remains ) > 0 ):
         print( "[assign__meshsize.py] remains            :: {0}  ".format( remains  ) )
-        print( "[assign__meshsize.py] continue ???       >> (y/n)", end="" )
+        print( "[assign__meshsize.py] generate uniform mesh ??? >> (y/n)", end="" )
+        typing = ( ( input() ).strip() ).lower()
+        if ( typing == "y" ):
+            gmsh.option.setNumber( "General.Verbosity"           ,           3 )
+            gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", minMeshSize )
+            gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", maxMeshSize )
+            gmsh.model.mesh.generate(3)
+            gmsh.write( "current.msh" )
+        print( "[assign__meshsize.py] continue ???              >> (y/n)", end="" )
         typing = ( ( input() ).strip() ).lower()
         if ( typing == "y" ):
             pass
