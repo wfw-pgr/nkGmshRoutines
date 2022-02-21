@@ -5,7 +5,7 @@ import gmsh
 # ========================================================= #
 # ===  import__stepFile                                 === #
 # ========================================================= #
-def import__stepFile( inpFile=None, keys=None, dimtags=None ):
+def import__stepFile( inpFile=None, keys=None, dimtags=None, synchronize=True, removeAllDuplicates=False, entityFile=None ):
     
     # ------------------------------------------------- #
     # --- [1] arguments                             --- #
@@ -21,7 +21,16 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None ):
     entities  = [ int(dimtag[1]) for dimtag in ret ]
 
     # ------------------------------------------------- #
-    # --- [3] display information                   --- #
+    # --- [3] remove All Duplicates                 --- #
+    # ------------------------------------------------- #
+    if ( synchronize ):
+        gmsh.model.occ.synchronize()
+    if ( removeAllDuplicates ):
+        gmsh.model.occ.synchronize()
+        gmsh.model.occ.removeAllDuplicates()
+        
+    # ------------------------------------------------- #
+    # --- [4] display information                   --- #
     # ------------------------------------------------- #
     print()
     print( "-"*30 + "   [import__stepFile.py]    " + "-"*30 )
@@ -33,9 +42,19 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None ):
     print()
     print( "-"*88 )
     print()
+
+    # ------------------------------------------------- #
+    # --- [5] entity File exists                    --- #
+    # ------------------------------------------------- #
+    if ( entityFile is not None ):
+        import nkGmshRoutines.load__dimtags as ldt
+        former_dimtags = ldt.load__dimtags( inpFile=entityFile )
+        import nkGmshRoutines.renumbering__dimtags as rnm
+        dimtags        = rnm.renumbering__dimtags( dimtags=former_dimtags )
+        return( dimtags )
     
     # ------------------------------------------------- #
-    # --- [4] naming                                --- #
+    # --- [6] naming                                --- #
     # ------------------------------------------------- #
     if ( keys is None ):
         baseName = ( inpFile.split( "/" ) )[-1] + ".{0}"
@@ -43,7 +62,7 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None ):
     dimtags_loc = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
 
     # ------------------------------------------------- #
-    # --- [5] merge dimtags / return                --- #
+    # --- [7] merge dimtags / return                --- #
     # ------------------------------------------------- #
     if ( dimtags is None ):
         dimtags = dimtags_loc

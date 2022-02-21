@@ -11,7 +11,7 @@ import nkGmshRoutines.transform__affine  as tra
 # ===  geometrize__fromTable.py                         === #
 # ========================================================= #
 def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
-                           keys=None, names=None, table=None ):
+                           keys=None, names=None, table=None, setEntityName=False, verbose=False ):
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -33,8 +33,11 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
         card      = table[key]
         table_loc = { key:card }
         print()
-        print( " key  :: ", key  )
-        print( " card :: ", card )
+        print( " key    :: ", key  )
+        print( " card   :: ", card )
+
+        if ( verbose ):
+            print( "dimtags :: ", dimtags )
         
         # ------------------------------------------------- #
         # --- [2-1] define__geometry                    --- #
@@ -62,14 +65,22 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
         if ( nop ):
             sys.exit( "[geometrize__fromTable.py] None-Operation with key :: {0}".format( key ) )
 
+    if ( verbose ):
+        print( "dimtags :: ", dimtags )
+
     # ------------------------------------------------- #
     # --- [3] set Entity Name                       --- #
     # ------------------------------------------------- #
-    keys = list( dimtags.keys() )
-    for key in keys:
-        if ( len( dimtags[key] ) == 1 ):
-            dim, tag = dimtags[key][0]
-            gmsh.model.setEntityName( dim, tag, key )
+    if ( setEntityName ):
+        keys = list( dimtags.keys() )
+        for key in keys:
+            if ( len( dimtags[key] ) == 1 ):
+                dim, tag = dimtags[key][0]
+                gmsh.model.setEntityName( dim, tag, key )
+
+    # ------------------------------------------------- #
+    # --- [4] return                                --- #
+    # ------------------------------------------------- #
     return( dimtags )
 
 

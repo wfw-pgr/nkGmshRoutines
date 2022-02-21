@@ -30,6 +30,7 @@ def transform__affine( inpFile="test/transform.conf", dimtags=None, keys=None, \
         if ( "transform_type" in card ):
             if ( card["transform_type"].lower() == "affine" ):
                 ret = affine__transform( dimtags=dimtags, card=card )
+                    
     return()
 
 
@@ -101,7 +102,6 @@ if ( __name__=="__main__" ):
     import nkGmshRoutines.define__geometry as dgm
     dimtags = dgm.define__geometry( table=table )
     gmsh.model.occ.synchronize()
-    print( dimtags )
 
     table   = { "transform1": { "transform_type":"affine", "targetKeys":["cube01"], \
                                 "rot.z":0.0, "move.x":0.1 } }
