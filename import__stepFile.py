@@ -91,9 +91,11 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
-    inpFile = "test/example.stp"
-    keys    = [ "lower_smaller", "lower_larger", "cyl_small", "cyl_larger" ]
-    dimtags = import__stepFile( inpFile=inpFile, keys=keys )
+    entityFile = "test/dimtags.json"
+    inpFile    = "test/example.stp"
+    # keys       = [ "lower_smaller", "lower_larger", "cyl_small", "cyl_larger" ]
+    # dimtags    = import__stepFile( inpFile=inpFile, keys=keys )
+    dimtags    = import__stepFile( inpFile=inpFile, entityFile=entityFile )
     print( dimtags )
     
     gmsh.model.occ.synchronize()

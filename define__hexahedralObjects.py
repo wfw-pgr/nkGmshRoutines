@@ -10,9 +10,9 @@ import nkGmshRoutines.generate__fanShape   as fan
 # ========================================================= #
 
 def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnType="list", \
-                               r_margin=0.1, t_margin=0.1, z_margin=0.1 ):
+                               r_margin=0.1, t_margin=0.1, z_margin=0.1, angle_offset=0.0 ):
 
-    id_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+    id_, pN_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
     voluDim = 3
     
     # ------------------------------------------------- #
@@ -24,6 +24,7 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
     # ------------------------------------------------- #
     # --- [2] arange data                           --- #
     # ------------------------------------------------- #
+    Data[:,th_]  = Data[:,th_] + angle_offset
     deg2rad      = np.pi / 180.0
     costh, sinth = np.cos( Data[:,th_]*deg2rad ), np.sin( Data[:,th_]*deg2rad )
     crossSection = [ [ Data[:,r1_]*costh, Data[:,r1_]*sinth, Data[:,z1_] ],
@@ -34,7 +35,9 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
 
     IDs          = np.array( Data[:,id_], dtype=np.int64 )
     IDtypes      = sorted( list( set( IDs ) ) )
-    
+    pNs          = np.array( Data[:,pN_], dtype=np.int64 ) # physical Numbers
+    pNtypes      = sorted( list( set( pNs ) ) )
+
     # ------------------------------------------------- #
     # --- [3] make hexahedron                       --- #
     # ------------------------------------------------- #
@@ -53,7 +56,6 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
     # ------------------------------------------------- #
     # --- [4] fuse objects                          --- #
     # ------------------------------------------------- #
-    volu  = []
     named = {}
     for ik,hID in enumerate( IDtypes ):
         key     = "id={0:04}".format( hID )
@@ -62,12 +64,43 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
             targets     = [ dimtags[0] ]
             tools       =   dimtags[1:]
             ret, fmap   = gmsh.model.occ.fuse( targets, tools )
-            volu       += ret
             named[key]  = ret
         else:
-            volu       += dimtags
             named[key]  = dimtags
-            
+
+    # ------------------------------------------------- #
+    # --- [5] fuse objects by physNums              --- #
+    # ------------------------------------------------- #
+    pN_ID_table  = {}
+    for Data_loc in Data:
+        key = "pN={0:04}".format(  int( Data_loc[pN_] ) )
+        if ( key in pN_ID_table ):
+            pN_ID_table[key]  += [ int( Data_loc[id_] ) ]
+        else:
+            pN_ID_table[key]   = [ int( Data_loc[id_] ) ]
+    for key in list( pN_ID_table.keys() ):
+        pN_ID_table[key] = list( set( pN_ID_table[key] ) )
+        
+    volu   = []
+    named_ = {}
+    for ik,hpN in enumerate( pNtypes ):
+        key     = "pN={0:04}".format( hpN )
+        id_loc  = pN_ID_table[key]
+        dimtags = [ ( named["id={0:04}".format( hid )] )[0] for hid in id_loc ]
+        
+        if   ( len( dimtags ) == 1 ):
+            volu        += dimtags
+            named_[key]  = dimtags
+        elif ( len( dimtags ) >= 2 ):
+            targets      = [ dimtags[0] ]
+            tools        =   dimtags[1:]
+            ret, fmap    = gmsh.model.occ.fuse( targets, tools )
+            volu        += ret
+            named_[key]  = ret
+        else:
+            sys.exit( "[define__hexahedralObjects.py] num of id number is less than 1, at physical Number :: {0} ".format( hpN ) )
+    named = named_
+    
     # ------------------------------------------------- #
     # --- [5] generate blancket                     --- #
     # ------------------------------------------------- #
