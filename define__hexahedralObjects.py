@@ -12,7 +12,7 @@ import nkGmshRoutines.generate__fanShape   as fan
 def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnType="list", \
                                r_margin=0.1, t_margin=0.1, z_margin=0.1, angle_offset=0.0 ):
 
-    id_, pN_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    cs_, id_, th_, r1_, z1_, r2_, z2_, r3_, z3_, r4_, z4_ = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
     voluDim = 3
     
     # ------------------------------------------------- #
@@ -33,17 +33,17 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
                      [ Data[:,r4_]*costh, Data[:,r4_]*sinth, Data[:,z4_] ] ]
     crossSection = np.array( crossSection )
 
-    IDs          = np.array( Data[:,id_], dtype=np.int64 )
-    IDtypes      = sorted( list( set( IDs ) ) )
-    pNs          = np.array( Data[:,pN_], dtype=np.int64 ) # physical Numbers
-    pNtypes      = sorted( list( set( pNs ) ) )
+    CSs          = np.array( Data[:,cs_], dtype=np.int64 )
+    CStypes      = sorted( list( set( CSs ) ) )
+    ids          = np.array( Data[:,id_], dtype=np.int64 ) # physical Numbers / entityNumbers
+    idtypes      = sorted( list( set( ids ) ) )
 
     # ------------------------------------------------- #
     # --- [3] make hexahedron                       --- #
     # ------------------------------------------------- #
     hexas = {}
-    for hID in IDtypes:
-        index   = ( np.where( IDs == hID ) )[0]
+    for hCS in CStypes:
+        index   = ( np.where( CSs == hCS ) )[0]
         cs      = crossSection[ :, :, index ]
         nCS     = cs.shape[2]
         retList = []
@@ -51,14 +51,14 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
             vertex  = np.concatenate( [ cs[:,:,ik], cs[:,:,ik+1] ], axis=0 )
             ret     = ghh.generate__hexahedron( vertex=vertex, defineVolu=True, defineSurf=True )
             retList.append( ( voluDim,ret ) )
-        hexas[ "id={0:04}".format( hID ) ] = retList
+        hexas[ "cs={0:04}".format( hCS ) ] = retList
     
     # ------------------------------------------------- #
     # --- [4] fuse objects                          --- #
     # ------------------------------------------------- #
     named = {}
-    for ik,hID in enumerate( IDtypes ):
-        key     = "id={0:04}".format( hID )
+    for ik,hCS in enumerate( CStypes ):
+        key     = "cs={0:04}".format( hCS )
         dimtags = hexas[key]
         if ( len( dimtags ) >= 2 ):
             targets     = [ dimtags[0] ]
@@ -71,22 +71,22 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
     # ------------------------------------------------- #
     # --- [5] fuse objects by physNums              --- #
     # ------------------------------------------------- #
-    pN_ID_table  = {}
+    id_CS_table  = {}
     for Data_loc in Data:
-        key = "pN={0:04}".format(  int( Data_loc[pN_] ) )
-        if ( key in pN_ID_table ):
-            pN_ID_table[key]  += [ int( Data_loc[id_] ) ]
+        key = "id={0:04}".format(  int( Data_loc[id_] ) )
+        if ( key in id_CS_table ):
+            id_CS_table[key]  += [ int( Data_loc[cs_] ) ]
         else:
-            pN_ID_table[key]   = [ int( Data_loc[id_] ) ]
-    for key in list( pN_ID_table.keys() ):
-        pN_ID_table[key] = list( set( pN_ID_table[key] ) )
+            id_CS_table[key]   = [ int( Data_loc[cs_] ) ]
+    for key in list( id_CS_table.keys() ):
+        id_CS_table[key] = list( set( id_CS_table[key] ) )
         
     volu   = []
     named_ = {}
-    for ik,hpN in enumerate( pNtypes ):
-        key     = "pN={0:04}".format( hpN )
-        id_loc  = pN_ID_table[key]
-        dimtags = [ ( named["id={0:04}".format( hid )] )[0] for hid in id_loc ]
+    for ik,hid in enumerate( idtypes ):
+        key     = "id={0:04}".format( hid )
+        cs_loc  = id_CS_table[key]
+        dimtags = [ ( named["cs={0:04}".format( hcs )] )[0] for hcs in cs_loc ]
         
         if   ( len( dimtags ) == 1 ):
             volu        += dimtags
@@ -98,7 +98,7 @@ def define__hexahedralObjects( inpFile="dat/mc_cs.conf", blanket=True, returnTyp
             volu        += ret
             named_[key]  = ret
         else:
-            sys.exit( "[define__hexahedralObjects.py] num of id number is less than 1, at physical Number :: {0} ".format( hpN ) )
+            sys.exit( "[define__hexahedralObjects.py] num of cs number is less than 1, at physical Number :: {0} ".format( hid ) )
     named = named_
     
     # ------------------------------------------------- #
