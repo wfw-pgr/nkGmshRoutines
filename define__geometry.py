@@ -11,7 +11,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", \
-                       "hollowpipe", "polygon", "prism" ]
+                       "hollowpipe", "polygon", "prism", "revolve", "rotated" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -65,6 +65,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["polygon","prism"]  ):
             dimtags[key] = define__polygon ( card=card )
+        # ------------------------------------------------- #
+        # --- [2-7] rovolve  shape                      --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["revole","rotated"]  ):
+            dimtags[key] = define__revolve ( card=card )
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -234,6 +239,58 @@ def define__polygon( card=None ):
     # ------------------------------------------------- #
     import nkGmshRoutines.generate__polygon as ply
     ret   = ply.generate__polygon( vertex    =vertex, extrude_vector=extrude_vector, \
+                                   returnType="dimtags" )
+    gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [4] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+# ========================================================= #
+# ===  define__revolve                                  === #
+# ========================================================= #
+
+def define__revolve( card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__revolve] card == ???" )
+    if ( not( "xc"        in card ) ): card["xc"]        = 0.0
+    if ( not( "yc"        in card ) ): card["yc"]        = 0.0
+    if ( not( "zc"        in card ) ): card["zc"]        = 0.0
+    if ( not( "centering" in card ) ): card["centering"] = True
+    
+    key_of_card = card.keys()
+    vertex_list = []
+    pattern     = "vertex[0-9]*"
+    for key in key_of_card:
+        ret = re.match( pattern, key )
+        if ( ret is None ):
+            pass
+        else:
+            vertex_list.append( card[key] )
+    nVertex     = len( vertex_list )
+    if ( nVertex < 3 ):
+        print( "[define__revolve] too small nVertex number... [ERROR]" )
+        sys.exit()
+        
+    # ------------------------------------------------- #
+    # --- [2] prepare arguments                     --- #
+    # ------------------------------------------------- #
+    vertex         = np.array( vertex_list )
+    origin         = np.array( [ card["xc"], card["yc"], card["zc"] ] )
+    axis           = card["axis"]
+    angle          = card["angle"]
+    
+    # ------------------------------------------------- #
+    # --- [3] call generate__revolve             --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__revolve as ply
+    ret   = ply.generate__revolve( vertex    =vertex, axis=axis, angle=angle, \
                                    returnType="dimtags" )
     gmsh.model.occ.synchronize()
     

@@ -103,7 +103,7 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
-    dimtags = geometrize__fromTable( inpFile="test/geometry3.conf" )
+    dimtags = geometrize__fromTable( inpFile="test/geometry4.conf" )
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
