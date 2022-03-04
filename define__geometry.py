@@ -68,7 +68,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         # --- [2-7] rovolve  shape                      --- #
         # ------------------------------------------------- #
-        if ( card["geometry_type"].lower() in ["revole","rotated"]  ):
+        if ( card["geometry_type"].lower() in ["revolve","rotated"]  ):
             dimtags[key] = define__revolve ( card=card )
 
         # ------------------------------------------------- #
