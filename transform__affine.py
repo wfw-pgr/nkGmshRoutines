@@ -48,7 +48,9 @@ def affine__transform( dimtags=None, card=None ):
     if ( card    is None ): sys.exit( "[affine__transform] card   == ???" )
     if ( dimtags is None ): sys.exit( "[affine__transform] dimtags == ???" )
 
-    target    = [ dimtags[key] for key in card["targetKeys"] ]
+    target = []
+    for ik,key in enumerate( card["targetKeys"] ):
+        target += dimtags[key]
     
     # ------------------------------------------------- #
     # --- [2] rotate object                         --- #
@@ -98,12 +100,17 @@ if ( __name__=="__main__" ):
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
     table   = { "cube01": { "geometry_type":"cube", "xc":0.0, "yc":0.0, "zc":0.0, \
-                            "wx":1.0, "wy":1.0, "wz":1.0 } }
+                            "wx":1.0, "wy":1.0, "wz":1.0, "centering":False },
+                "cube02": { "geometry_type":"cube", "xc":1.0, "yc":1.0, "zc":1.0, \
+                            "wx":1.0, "wy":1.0, "wz":1.0, "centering":False } }
     import nkGmshRoutines.define__geometry as dgm
     dimtags = dgm.define__geometry( table=table )
     gmsh.model.occ.synchronize()
+    table   = { "group01": { "boolean_type":"regroup", "targetKeys":["cube01","cube02"] } }
+    import nkGmshRoutines.boolean__fromTable as bft
+    dimtags = bft.boolean__fromTable( table=table, dimtags=dimtags )
 
-    table   = { "transform1": { "transform_type":"affine", "targetKeys":["cube01"], \
+    table   = { "transform1": { "transform_type":"affine", "targetKeys":["group01"], \
                                 "rot.z":0.0, "move.x":0.1 } }
     transform__affine( dimtags=dimtags, table=table )
     
@@ -118,6 +125,6 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
-    gmsh.write( "msh/model.msh" )
+    gmsh.write( "test/transform_test.msh" )
     gmsh.finalize()
     
