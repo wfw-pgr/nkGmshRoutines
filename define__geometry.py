@@ -96,14 +96,17 @@ def define__cube( card=None ):
     if ( not( "yc"        in card ) ): card["yc"]        = 0.0
     if ( not( "zc"        in card ) ): card["zc"]        = 0.0
     if ( not( "centering" in card ) ): card["centering"] = True
+    if (    ( "wx"        in card ) ): card["dx"]        = card["wx"]
+    if (    ( "wy"        in card ) ): card["dy"]        = card["wy"]
+    if (    ( "wz"        in card ) ): card["dz"]        = card["wz"]
     
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
     xc,yc,zc  = card["xc"], card["yc"], card["zc"]
     if ( card["centering"] ):
-        xc,yc,zc  = xc-0.5*card["wx"], yc-0.5*card["wy"], zc-0.5*card["wz"]
-    dx,dy,dz  = card["wx"]           , card["wy"]       , card["wz"]
+        xc,yc,zc  = xc-0.5*card["dx"], yc-0.5*card["dy"], zc-0.5*card["dz"]
+    dx,dy,dz  = card["dx"]           , card["dy"]       , card["dz"]
     ret       = gmsh.model.occ.addBox( xc, yc, zc, dx, dy, dz )
     ret       = [(3,ret)]
     gmsh.model.occ.synchronize()

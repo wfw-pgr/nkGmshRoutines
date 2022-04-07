@@ -8,7 +8,8 @@ import gmsh
 def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
                         keys=None, names=None, table=None ):
 
-    boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "remove", "duplicates" ]
+    boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "remove", \
+                      "duplicates", "regroup" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -65,6 +66,12 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         if ( card["boolean_type"].lower() == "duplicates" ):
             gmsh.model.occ.removeAllDuplicates()
             gmsh.model.occ.synchronize()
+        # ------------------------------------------------- #
+        # --- [2-7] regroup dimtags                     --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "regroup" ):
+            dimtags[key] = regroup__dimtags( card=card, dimtags=dimtags )
+
         # ------------------------------------------------- #
         # --- [2-a] debug display                       --- #
         # ------------------------------------------------- #
@@ -330,6 +337,27 @@ def boolean__mirror( dimtags=None, card=None ):
     ret         = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
                                          card["coef"][2], card["coef"][3] )
     gmsh.model.occ.synchronize()
+    return( ret )
+
+
+# ========================================================= #
+# ===  regroup dimtags                                  === #
+# ========================================================= #
+
+def regroup__dimtags( dimtags=None, card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card    is None ): sys.exit( "[regroup__dimtags] card    == ???" )
+    if ( dimtags is None ): sys.exit( "[regroup__dimtags] dimtags == ???" )
+
+    # ------------------------------------------------- #
+    # --- [2] regroup object                        --- #
+    # ------------------------------------------------- #
+    ret      = []
+    for key in card["targetKeys"]:
+        ret += dimtags.pop( key )
     return( ret )
 
 
