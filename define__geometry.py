@@ -290,7 +290,7 @@ def define__revolve( card=None ):
     angle          = card["angle"]
     
     # ------------------------------------------------- #
-    # --- [3] call generate__revolve             --- #
+    # --- [3] call generate__revolve                --- #
     # ------------------------------------------------- #
     import nkGmshRoutines.generate__revolve as ply
     ret   = ply.generate__revolve( vertex    =vertex, axis=axis, angle=angle, \
