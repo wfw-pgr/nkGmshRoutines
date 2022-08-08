@@ -9,7 +9,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
                         keys=None, names=None, table=None ):
 
     boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "symmetrize", \
-                      "remove", "duplicates", "regroup" ]
+                      "remove", "duplicates", "regroup", "synchronize" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -72,7 +72,11 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "regroup" ):
             dimtags[key] = regroup__dimtags( card=card, dimtags=dimtags )
-
+        # ------------------------------------------------- #
+        # --- [2-8] just synchronize                    --- #
+        # ------------------------------------------------- #
+        if ( card["boolean_type"].lower() == "synchronize" ):
+            gmsh.model.occ.synchronize()
         # ------------------------------------------------- #
         # --- [2-a] debug display                       --- #
         # ------------------------------------------------- #
