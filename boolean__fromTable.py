@@ -55,11 +55,12 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() in ["mirror","symmetrize"] ):
             dimtags[key] = boolean__mirror( card=card, dimtags=dimtags )
+            if ( dimtags[key] is None ): dimtags.pop( key )
         # ------------------------------------------------- #
         # --- [2-6] boolean remove                      --- #
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "remove" ):
-            dimtags[key] = boolean__remove( card=card, dimtags=dimtags )
+            removed      = boolean__remove( card=card, dimtags=dimtags )
         # ------------------------------------------------- #
         # --- [2-6] remove all duplicates               --- #
         # ------------------------------------------------- #
@@ -307,6 +308,12 @@ def boolean__remove( dimtags=None, card=None ):
         target += dimtags[key]
     ret         = gmsh.model.occ.remove( target, recursive=card["recursive"] )
     gmsh.model.occ.synchronize()
+
+    # ------------------------------------------------- #
+    # --- [3] rename                                --- #
+    # ------------------------------------------------- #
+    for key in card["targetKeys"]:
+        rm = dimtags.pop( key )
     return( ret )
 
 
@@ -317,6 +324,9 @@ def boolean__remove( dimtags=None, card=None ):
 
 def boolean__mirror( dimtags=None, card=None ):
 
+    # boolean_type:"mirror", targetKeys:["item01","item02",...],
+    # plane: "x-z", "x-y", etc. rename: True / False
+    
     # ------------------------------------------------- #
     # --- [1] argument check                        --- #
     # ------------------------------------------------- #
@@ -347,6 +357,15 @@ def boolean__mirror( dimtags=None, card=None ):
     ret         = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
                                          card["coef"][2], card["coef"][3] )
     gmsh.model.occ.synchronize()
+
+    # ------------------------------------------------- #
+    # --- [3] rename                                --- #
+    # ------------------------------------------------- #
+    if ( "rename" in card ):
+        if ( card["rename"] is True ):
+            ret = target
+            for key in card["targetKeys"]:
+                rm = dimtags.pop( key )
     return( ret )
 
 
