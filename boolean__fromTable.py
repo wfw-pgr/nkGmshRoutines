@@ -9,7 +9,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
                         keys=None, names=None, table=None ):
 
     boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "symmetrize", \
-                      "remove", "duplicates", "regroup", "synchronize" ]
+                      "remove", "duplicates", "regroup", "rename", "synchronize" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -70,7 +70,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         # --- [2-7] regroup dimtags                     --- #
         # ------------------------------------------------- #
-        if ( card["boolean_type"].lower() == "regroup" ):
+        if ( card["boolean_type"].lower() in ["regroup","rename"] ):
             dimtags[key] = regroup__dimtags( card=card, dimtags=dimtags )
         # ------------------------------------------------- #
         # --- [2-8] just synchronize                    --- #
@@ -348,8 +348,9 @@ def boolean__mirror( dimtags=None, card=None ):
             print( "[boolean__fromTable.py] unknown mirrorPlane... {} " )
             
     if ( not( "coef" in card ) ):
-        print("[boolean__mirror] cannot find coef in card...  [ERROR]")
-        print("[boolean__mirror] coef = [ a,b,c,d ] for ax+by+cz+d=0 :: plane of mirroring. ")
+        print("[boolean__mirror] cannot find coef / plane in card...  [ERROR]")
+        print("[boolean__mirror] plane = [ x-y, x-z, y-z, etc. ]" )
+        print("[boolean__mirror] coef  = [ a,b,c,d ] for ax+by+cz+d=0 :: plane of mirroring. ")
         sys.exit()
         
     # ------------------------------------------------- #
@@ -358,8 +359,13 @@ def boolean__mirror( dimtags=None, card=None ):
     target      = []
     for key in card["targetKeys"]:
         target += dimtags[key]
-    ret         = gmsh.model.occ.mirror( target, card["coef"][0], card["coef"][1], \
-                                         card["coef"][2], card["coef"][3] )
+    if ( "mirror" in dir( gmsh.model.occ ) ):
+        ret     = gmsh.model.occ.mirror    ( target, card["coef"][0], card["coef"][1], \
+                                             card["coef"][2], card["coef"][3] )
+    else:
+        ret     = gmsh.model.occ.symmetrize( target, card["coef"][0], card["coef"][1], \
+                                             card["coef"][2], card["coef"][3] )
+        # symmetrize will be dprecated in the future.
     gmsh.model.occ.synchronize()
 
     # ------------------------------------------------- #
