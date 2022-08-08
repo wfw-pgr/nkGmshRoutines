@@ -8,8 +8,8 @@ import gmsh
 def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
                         keys=None, names=None, table=None ):
 
-    boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "remove", \
-                      "duplicates", "regroup" ]
+    boolean_types = [ "cut", "fuse", "intersect", "copy", "mirror", "symmetrize", \
+                      "remove", "duplicates", "regroup" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -53,7 +53,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         # --- [2-5] boolean copy                        --- #
         # ------------------------------------------------- #
-        if ( card["boolean_type"].lower() == "mirror" ):
+        if ( card["boolean_type"].lower() in ["mirror","symmetrize"] ):
             dimtags[key] = boolean__mirror( card=card, dimtags=dimtags )
         # ------------------------------------------------- #
         # --- [2-6] boolean remove                      --- #
@@ -322,7 +322,17 @@ def boolean__mirror( dimtags=None, card=None ):
     # ------------------------------------------------- #
     if ( card    is None ): sys.exit( "[boolean__mirror] card    == ???" )
     if ( dimtags is None ): sys.exit( "[boolean__mirror] dimtags == ???" )
-    
+
+    if ( "plane" in card  ):
+        if   ( card["plane"].lower() in ["y-z", "z-y"] ):
+            card["coef"] = [ 1, 0, 0, 0 ]
+        elif ( card["plane"].lower() in ["x-z", "z-x"] ):
+            card["coef"] = [ 0, 1, 0, 0 ]
+        elif ( card["plane"].lower() in ["x-y", "y-x"] ):
+            card["coef"] = [ 0, 0, 1, 0 ]
+        else:
+            print( "[boolean__fromTable.py] unknown mirrorPlane... {} " )
+            
     if ( not( "coef" in card ) ):
         print("[boolean__mirror] cannot find coef in card...  [ERROR]")
         print("[boolean__mirror] coef = [ a,b,c,d ] for ax+by+cz+d=0 :: plane of mirroring. ")
