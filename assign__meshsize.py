@@ -37,7 +37,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
         aldtKeys         += dimtags_keys_loc
         stack             = { dimtag_key:physKey for dimtag_key in dimtags_keys_loc }
         resolveDict       = { **resolveDict, **stack }
-        
+
     # ------------------------------------------------- #
     # --- [3] store mesh / phys info as lists       --- #
     # ------------------------------------------------- #
@@ -78,7 +78,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     resolut1Dict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
     resolut2Dict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
     evaluateDict = { str(mc[key]["physNum"]):mc[key]["evaluation"]  for key in meshKeys }
-
+    
     # ------------------------------------------------- #
     # --- [5] make physNum <=> entityNum table      --- #
     # ------------------------------------------------- #
@@ -118,7 +118,7 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
         gmsh.model.addPhysicalGroup( surfDim, surfPhys[str(s_phys)], tag=int(s_phys) )
     for s_phys in list( voluPhys.keys() ):
         gmsh.model.addPhysicalGroup( voluDim, voluPhys[str(s_phys)], tag=int(s_phys) )
-    
+        
     # ------------------------------------------------- #
     # --- [7] make list for every dimtags's keys    --- #
     # ------------------------------------------------- #

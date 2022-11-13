@@ -5,7 +5,8 @@ import gmsh
 # ========================================================= #
 # ===  import__stepFile                                 === #
 # ========================================================= #
-def import__stepFile( inpFile=None, keys=None, dimtags=None, synchronize=True, removeAllDuplicates=False, entityFile=None ):
+def import__stepFile( inpFile=None, keys=None, dimtags=None, \
+                      synchronize=True, removeAllDuplicates=False, dimtagsFile=None ):
     
     # ------------------------------------------------- #
     # --- [1] arguments                             --- #
@@ -46,11 +47,15 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None, synchronize=True, r
     # ------------------------------------------------- #
     # --- [5] entity File exists                    --- #
     # ------------------------------------------------- #
-    if ( entityFile is not None ):
+    if ( dimtagsFile is not None ):
         import nkGmshRoutines.load__dimtags as ldt
-        former_dimtags = ldt.load__dimtags( inpFile=entityFile )
+        former_dimtags = ldt.load__dimtags( inpFile=dimtagsFile )
         import nkGmshRoutines.renumbering__dimtags as rnm
         dimtags        = rnm.renumbering__dimtags( dimtags=former_dimtags )
+        nEntity_dimtag = np.sum( np.array( [ len( dimtags[key] ) for key in dimtags.keys() ] ) )
+        if ( not( nEntity_dimtag == nEntities ) ):
+            print( "\n" + "[import__stepFile.py] incompatible #. of entities in dimtagFile & #. of entities in STEP file....[ERROR] " + "\n" )
+            sys.exit()
         return( dimtags )
     
     # ------------------------------------------------- #
@@ -59,15 +64,14 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None, synchronize=True, r
     if ( keys is None ):
         baseName = ( inpFile.split( "/" ) )[-1] + ".{0}"
         keys     = [ baseName.format( ik+1 ) for ik in range( nEntities ) ]
-    dimtags_loc = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
 
     # ------------------------------------------------- #
     # --- [7] merge dimtags / return                --- #
     # ------------------------------------------------- #
     if ( dimtags is None ):
+        dimtags = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
         dimtags = dimtags_loc
-    else:
-        dimtags = { **dimtags, **dimtags_loc }
+        
     return( dimtags )
 
     
@@ -87,16 +91,12 @@ if ( __name__=="__main__" ):
     gmsh.option.setNumber( "Mesh.SubdivisionAlgorithm", 0 )
     gmsh.model.add( "model" )
     
-    
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
-    entityFile = "test/dimtags.json"
-    inpFile    = "test/example.stp"
-    # keys       = [ "lower_smaller", "lower_larger", "cyl_small", "cyl_larger" ]
-    # dimtags    = import__stepFile( inpFile=inpFile, keys=keys )
-    dimtags    = import__stepFile( inpFile=inpFile, entityFile=entityFile )
-    print( dimtags )
+    dimtagsFile = "test/dimtags.json"
+    inpFile     = "test/model.stp"
+    dimtags     = import__stepFile( inpFile=inpFile, dimtagsFile=dimtagsFile )
     
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()

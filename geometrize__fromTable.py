@@ -11,7 +11,7 @@ import nkGmshRoutines.transform__affine  as tra
 # ===  geometrize__fromTable.py                         === #
 # ========================================================= #
 def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
-                           keys=None, names=None, table=None, setEntityName=False, verbose=False ):
+                           keys=None, names=None, table=None, setEntityName=False, verbose=True ):
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -32,11 +32,11 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
     for key in keys:
         card      = table[key]
         table_loc = { key:card }
-        print()
-        print( " key    :: ", key  )
-        print( " card   :: ", card )
 
         if ( verbose ):
+            print()
+            print( " key    :: ", key  )
+            print( " card   :: ", card )
             print( "dimtags :: ", dimtags )
         
         # ------------------------------------------------- #

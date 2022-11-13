@@ -11,7 +11,8 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", \
-                       "hollowpipe", "polygon", "prism", "revolve", "rotated" ]
+                       "hollowpipe", "polygon", "prism", "revolve", "rotated", \
+                       "circle" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -70,6 +71,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["revolve","rotated"]  ):
             dimtags[key] = define__revolve ( card=card )
+        # ------------------------------------------------- #
+        # --- [2-8] circle  shape                       --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["circle"]  ):
+            dimtags[key] = define__circle ( card=card )
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -369,6 +375,40 @@ def define__QuadRing( card=None ):
     # ------------------------------------------------- #
     return( ret )
     
+
+# ========================================================= #
+# ===  define__circle                                   === #
+# ========================================================= #
+
+def define__circle( card=None ):
+    
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__circle] card == ???" )
+    if ( not( "xc" in card ) ): card["xc"] = 0.0
+    if ( not( "yc" in card ) ): card["yc"] = 0.0
+    if ( not( "zc" in card ) ): card["zc"] = 0.0
+    
+    # ------------------------------------------------- #
+    # --- [2] call addCircle                        --- #
+    # ------------------------------------------------- #
+    xc,yc,zc  = card["xc"], card["yc"], card["zc"]
+    rc        = card["rc"]
+    circleL   = gmsh.model.occ.addCircle( xc, yc, zc, rc )
+    lineGroup = gmsh.model.occ.addCurveLoop( [ circleL ] )
+    circle    = gmsh.model.occ.addPlaneSurface( [ lineGroup ] )
+    ret       = [(3,circle)]
+    gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+
 
 # ========================================================= #
 # ===  affine__transform                                === #
