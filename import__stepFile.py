@@ -70,7 +70,6 @@ def import__stepFile( inpFile=None, keys=None, dimtags=None, \
     # ------------------------------------------------- #
     if ( dimtags is None ):
         dimtags = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
-        dimtags = dimtags_loc
         
     return( dimtags )
 
