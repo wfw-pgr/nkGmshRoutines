@@ -5,13 +5,30 @@ import gmsh
 # ========================================================= #
 # ===  import__stepFile                                 === #
 # ========================================================= #
-def import__stepFile( inpFile=None, keys=None, dimtags=None, \
+def import__stepFile( inpFile=None, keys=None, dimtags=None, scale_unit="m", \
                       synchronize=True, removeAllDuplicates=False, dimtagsFile=None ):
     
     # ------------------------------------------------- #
     # --- [1] arguments                             --- #
     # ------------------------------------------------- #
-    if ( inpFile is None ): sys.exit( "[import__stepFile] inpFile == ???" )
+    if ( inpFile is None ):
+        sys.exit( "[import__stepFile] inpFile == ???" )
+    else:
+        if ( os.path.exists( inpFile ) ):
+            pass
+        else:
+            print( "\n" + "[import__stepFile.py] cannot find inpFile = {}.... [ERROR]".format( inpFile ) + "\n" )
+            sys.exit()
+    if   ( scale_unit == "m"  ):
+        scale_unit = 1.0
+    elif ( scale_unit == "mm" ):
+        scale_unit = 1.0e-3
+    elif ( type( scale_unit ) is float ):
+        pass
+    else:
+        print( "[import__stepFile.py] unknwon scale_unit :: [ m, mm, float number ].... [ERROR] " )
+        sys.exit()
+    gmsh.option.setNumber( "Geometry.OCCScaling", scale_unit )
 
     # ------------------------------------------------- #
     # --- [2] import shapes                         --- #

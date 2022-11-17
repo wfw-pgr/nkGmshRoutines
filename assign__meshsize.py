@@ -16,6 +16,10 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
     if ( uniform is not None ):
+        if ( uniform == 0.0 ):
+            xyzMinMax = gmsh.model.getBoundingBox( -1, -1 )
+            
+        
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", uniform )
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", uniform )
         return()
