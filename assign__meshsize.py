@@ -18,8 +18,11 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     if ( uniform is not None ):
         if ( uniform == 0.0 ):
             xyzMinMax = gmsh.model.getBoundingBox( -1, -1 )
-            
-        
+            xL        = ( xyzMinMax[3] - xyzMinMax[0] )
+            yL        = ( xyzMinMax[4] - xyzMinMax[1] )
+            zL        = ( xyzMinMax[5] - xyzMinMax[2] )
+            typLength = np.max( np.array( [ xL, yL, zL ] ) )
+            uniform   = typLength * 0.02
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMin", uniform )
         gmsh.option.setNumber( "Mesh.CharacteristicLengthMax", uniform )
         return()
