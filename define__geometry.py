@@ -3,14 +3,14 @@ import os, sys, re
 import gmsh
 import nkGmshRoutines.generate__sector180 as sec
 
-
 # ========================================================= #
 # ===  define__geometry                                 === #
 # ========================================================= #
+
 def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                       table=None, dimtags=None ):
 
-    geometry_types = [ "quadring", "cube", "cylinder", "pipe", "sphere", \
+    geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
                        "circle" ]
     
@@ -47,35 +47,40 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         if ( card["geometry_type"].lower() == "cube"     ):
             dimtags[key] = define__cube    ( card=card )
         # ------------------------------------------------- #
-        # --- [2-3] cylinder shape                      --- #
+        # --- [2-3] cylindrical shape                   --- #
         # ------------------------------------------------- #
-        if ( card["geometry_type"].lower() in [ "cylinder", "pipe" ] ):
-            dimtags[key] = define__cylinder( card=card )
+        if ( card["geometry_type"].lower() in [ "cylindrical" ] ):
+            dimtags[key] = define__cylindrical( card=card )
         # ------------------------------------------------- #
-        # --- [2-4] hollow pipe shape                   --- #
-        # ------------------------------------------------- #
-        if ( card["geometry_type"].lower() == "hollowpipe" ):
-            dimtags[key] = define__hollowPipe( card=card )
-        # ------------------------------------------------- #
-        # --- [2-5] sphere  shape                       --- #
+        # --- [2-4] sphere  shape                       --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "sphere"   ):
             dimtags[key] = define__sphere  ( card=card )
         # ------------------------------------------------- #
-        # --- [2-6] polygon  shape                      --- #
+        # --- [2-5] polygon  shape                      --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["polygon","prism"]  ):
             dimtags[key] = define__polygon ( card=card )
         # ------------------------------------------------- #
-        # --- [2-7] rovolve  shape                      --- #
+        # --- [2-6] rovolve  shape                      --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["revolve","rotated"]  ):
             dimtags[key] = define__revolve ( card=card )
         # ------------------------------------------------- #
-        # --- [2-8] circle  shape                       --- #
+        # --- [2-7] circle  shape                       --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["circle"]  ):
             dimtags[key] = define__circle ( card=card )
+        # ------------------------------------------------- #
+        # --- [2-8] cylinder shape (obsolete)           --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in [ "cylinder", "pipe" ] ):
+            dimtags[key] = define__cylinder( card=card )
+        # ------------------------------------------------- #
+        # --- [2-9] hollow pipe shape (obsolete)        --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() == "hollowpipe" ):
+            dimtags[key] = define__hollowPipe( card=card )
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -123,6 +128,60 @@ def define__cube( card=None ):
     ret    = affine__transform( target=ret, card=card )
     return( ret )
 
+
+# ========================================================= #
+# ===  define__cylindrical                              === #
+# ========================================================= #
+
+def define__cylindrical( card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__cylindrical] card == ???" )
+    if ( not( "z1" in card ) ): card["z1"] = 0.0
+    if ( not( "z2" in card ) ):
+        if   ( "length" in card ):
+            card["z2"] = card["z1"] + card["length"]
+        elif ( "dz"     in card ):
+            card["z2"] = card["z1"] + card["dz"]
+        else:
+            card["z2"] = 1.0
+    if ( not( "theta1" in card ) ): card["theta1"]  =   0.0
+    if ( not( "theta2" in card ) ): card["theta2"]  = 360.0
+    if   ( ( "rI1" in card ) and ( "rI2" in card ) ):
+        rI1 = card["rI1"]
+        rI2 = card["rI2"]
+    elif ( "rI" in card ):
+        rI1 = card["rI"]
+        rI2 = card["rI"]
+    else:
+        rI1 = 0.0
+        rI2 = 0.0
+    if   ( ( "rO1" in card ) and ( "rO2" in card ) ):
+        rO1 = card["rO1"]
+        rO2 = card["rO2"]
+    elif ( "rO" in card ):
+        rO1 = card["rO"]
+        rO2 = card["rO"]
+    else:
+        rO1 = 1.0
+        rO2 = 1.0
+    z1    , z2     = card["z1"]    , card["z2"]
+    theta1, theta2 = card["theta1"], card["theta2"]
+
+    # ------------------------------------------------- #
+    # --- [2] call generate__sector180              --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__cylindrical as cyl
+    ret = cyl.generate__cylindrical( rI1=rI1, rI2=rI2, rO1=rO1, rO2=rO2, \
+                                     theta1=theta1,theta2=theta2, z1=z1, z2=z2 )
+    
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
 
 # ========================================================= #
 # ===  define__cylinder                                 === #
@@ -489,7 +548,7 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(3)
-    gmsh.write( "msh/model.msh" )
+    gmsh.write( "test/model.msh" )
     gmsh.finalize()
     
 
