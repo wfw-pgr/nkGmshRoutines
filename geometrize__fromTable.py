@@ -21,6 +21,7 @@ def geometrize__fromTable( inpFile="test/geometry.conf", dimtags=None, \
     if ( table is None ):
         import nkUtilities.load__keyedTable as lkt
         table = lkt.load__keyedTable( inpFile=inpFile )
+        print( table )
     if ( keys  is None ):
         keys  = list(   table.keys() )
     if ( names is None ):
