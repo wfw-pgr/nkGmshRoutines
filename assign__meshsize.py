@@ -6,7 +6,7 @@ import nkUtilities.load__keyedTable as lkt
 # ========================================================= #
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
-def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, target="volu" ):
+def assign__meshsize( meshFile=None, physFile=None, logFile=None, dimtags=None, uniform=None, target="volu" ):
 
     dim_   , ent_    = 0, 1
     ptsDim , lineDim = 0, 1
@@ -151,11 +151,11 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
     itarget   = ( ["pts","line","surf","volu"] ).index( target )
     allEntities = gmsh.model.getEntities(itarget)
     allEntities = [ int(dimtag[1]) for dimtag in allEntities ]
-    missing     = list( set( entitiesList ) - set( allEntities  ) )
-    remains     = list( set( allEntities  ) - set( entitiesList ) )
-    print( "[assign__meshsize.py] listed entity nums :: {0} ".format( entitiesList ) )
-    print( "[assign__meshsize.py] all Entities       :: {0} ".format( allEntities  ) )
-    print( "[assign__meshsize.py] remains            :: {0} ".format( remains      ) )
+    missing     = sorted( list( set( entitiesList ) - set( allEntities  ) ) )
+    remains     = sorted( list( set( allEntities  ) - set( entitiesList ) ) )
+    print( "[assign__meshsize.py] listed entity nums :: {0} ".format( sorted( entitiesList ) ) )
+    print( "[assign__meshsize.py] all Entities       :: {0} ".format( sorted( allEntities  ) ) )
+    print( "[assign__meshsize.py] remains            :: {0} ".format( sorted( remains      ) ) )
     print()
     print( "[assign__meshsize.py] Mesh Configuration " )
     print( "  key :: type  min  max  mathEval" )
@@ -163,6 +163,16 @@ def assign__meshsize( meshFile=None, physFile=None, dimtags=None, uniform=None, 
         print( "  {0} :: {1}  {2}  {3}  {4}".format( physNum, meshTypes[ik], resolute1[ik], \
                                                      resolute2[ik], mathEvals[ik] ) )
     print()
+    if ( logFile is not None ):
+        with open( logFile, "w" ) as f:
+            f.write( "[assign__meshsize.py] listed entity nums :: {0} \n".format( sorted( entitiesList ) ) )
+            f.write( "[assign__meshsize.py] all Entities       :: {0} \n".format( sorted( allEntities  ) ) )
+            f.write( "[assign__meshsize.py] remains            :: {0} \n".format( sorted( remains      ) ) )
+            f.write( "[assign__meshsize.py] Mesh Configuration \n" )
+            f.write( "  key :: type  min  max  mathEval\n" )
+            for ik, physNum in enumerate(physNumsList):
+                f.write( "  {0} :: {1}  {2}  {3}  {4}\n".format( physNum, meshTypes[ik], resolute1[ik], \
+                                                                 resolute2[ik], mathEvals[ik] ) )
     
     # ------------------------------------------------- #
     # --- [10] error message for missing entities   --- #
