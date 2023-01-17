@@ -6,7 +6,8 @@ import nkUtilities.load__keyedTable as lkt
 # ========================================================= #
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
-def assign__meshsize( meshFile=None, physFile=None, logFile=None, dimtags=None, uniform=None, target="volu" ):
+def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
+                      dimtags=None, uniform=None, target="volu" ):
 
     dim_   , ent_    = 0, 1
     ptsDim , lineDim = 0, 1
@@ -81,6 +82,7 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, dimtags=None, 
     # --- [4] convert dictionary for mesh config    --- #
     # ------------------------------------------------- #
     mc           = meshconfig
+    meshKeysDict = { str(mc[key]["physNum"]):key                    for key in meshKeys }
     meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshType"]    for key in meshKeys }
     resolut1Dict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
     resolut2Dict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
@@ -119,12 +121,16 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, dimtags=None, 
     # ------------------------------------------------- #
     for s_phys in list(  ptsPhys.keys() ):
         gmsh.model.addPhysicalGroup(  ptsDim,  ptsPhys[str(s_phys)], tag=int(s_phys) )
+        gmsh.model.setPhysicalName (  ptsDim, int(s_phys), meshKeysDict[s_phys]      )
     for s_phys in list( linePhys.keys() ):
         gmsh.model.addPhysicalGroup( lineDim, linePhys[str(s_phys)], tag=int(s_phys) )
+        gmsh.model.setPhysicalName ( lineDim, int(s_phys), meshKeysDict[s_phys]      )
     for s_phys in list( surfPhys.keys() ):
         gmsh.model.addPhysicalGroup( surfDim, surfPhys[str(s_phys)], tag=int(s_phys) )
+        gmsh.model.setPhysicalName ( surfDim, int(s_phys), meshKeysDict[s_phys]      )
     for s_phys in list( voluPhys.keys() ):
         gmsh.model.addPhysicalGroup( voluDim, voluPhys[str(s_phys)], tag=int(s_phys) )
+        gmsh.model.setPhysicalName ( voluDim, int(s_phys), meshKeysDict[s_phys]      )
         
     # ------------------------------------------------- #
     # --- [7] make list for every dimtags's keys    --- #
