@@ -36,6 +36,7 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
     # ------------------------------------------------- #
     meshconfig = lkt.load__keyedTable( inpFile=meshFile )
     physconfig = lkt.load__keyedTable( inpFile=physFile )
+    itarget    = ( ["pts","line","surf","volu"] ).index( target )
     physKeys     = list( physconfig.keys() )
     meshKeys     = list( meshconfig.keys() )
     aldtKeys     = []
@@ -59,7 +60,8 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
             n_dimtag = len( dimtags[aldtKey] )
             if   ( n_dimtag >= 2 ):
                 dtagKeys     += [ aldtKey+".{0}".format(ik+1) for ik in range( n_dimtag ) ]
-                entitiesList += [ dimtag[ent_] for dimtag in dimtags[aldtKey] ]
+                entitiesList += [ dimtag[ent_] for dimtag in dimtags[aldtKey] \
+                                  if ( dimtag[dim_] == itarget ) ]
                 physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] \
                                   for ik in range( n_dimtag ) ]
                 for ik in range( n_dimtag ):
@@ -71,18 +73,18 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
                 
             elif ( n_dimtag == 1 ):
                 dtagKeys     += [ aldtKey ]
-                entitiesList += [ dimtags[aldtKey][0][ent_] ]
+                if ( dimtags[aldtKey][0][dim_] == itarget ):
+                    entitiesList += [ dimtags[aldtKey][0][ent_] ]
                 physNumsList += [ physconfig[ resolveDict[aldtKey] ]["physNum"] ]
                 entitiesDict[aldtKey] = dimtags[aldtKey][0][ent_]
                 physNumsDict[aldtKey] = physconfig[ resolveDict[aldtKey] ]["physNum"]
             else:
                 print( "[assign__meshsize.py] empty dimtags @ key = {0}".format( aldtKey ) )
-                
+
     # ------------------------------------------------- #
     # --- [4] convert dictionary for mesh config    --- #
     # ------------------------------------------------- #
     mc           = meshconfig
-    meshKeysDict = { str(mc[key]["physNum"]):key                    for key in meshKeys }
     meshTypeDict = { str(mc[key]["physNum"]):mc[key]["meshType"]    for key in meshKeys }
     resolut1Dict = { str(mc[key]["physNum"]):mc[key]["resolution1"] for key in meshKeys }
     resolut2Dict = { str(mc[key]["physNum"]):mc[key]["resolution2"] for key in meshKeys }
@@ -92,9 +94,11 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
     # --- [5] make physNum <=> entityNum table      --- #
     # ------------------------------------------------- #
     ptsPhys, linePhys, surfPhys, voluPhys = {}, {}, {}, {}
+    physNameDict = {}
     for dtagKey in dtagKeys:
-        physType = str( physconfig[ resolveDict[dtagKey] ]["type"]    )
-        s_phys   = str( physconfig[ resolveDict[dtagKey] ]["physNum"] )
+        physType             = str( physconfig[ resolveDict[dtagKey] ]["type"]    )
+        s_phys               = str( physconfig[ resolveDict[dtagKey] ]["physNum"] )
+        physNameDict[s_phys] = str( physconfig[ resolveDict[dtagKey] ]["key"]     )
         if ( physType.lower() == "pts" ):
             if ( s_phys in  ptsPhys ):
                 ptsPhys[s_phys]  += [ entitiesDict[dtagKey] ]
@@ -121,16 +125,16 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
     # ------------------------------------------------- #
     for s_phys in list(  ptsPhys.keys() ):
         gmsh.model.addPhysicalGroup(  ptsDim,  ptsPhys[str(s_phys)], tag=int(s_phys) )
-        gmsh.model.setPhysicalName (  ptsDim, int(s_phys), meshKeysDict[s_phys]      )
+        gmsh.model.setPhysicalName (  ptsDim, int(s_phys), physNameDict[s_phys]      )
     for s_phys in list( linePhys.keys() ):
         gmsh.model.addPhysicalGroup( lineDim, linePhys[str(s_phys)], tag=int(s_phys) )
-        gmsh.model.setPhysicalName ( lineDim, int(s_phys), meshKeysDict[s_phys]      )
+        gmsh.model.setPhysicalName ( lineDim, int(s_phys), physNameDict[s_phys]      )
     for s_phys in list( surfPhys.keys() ):
         gmsh.model.addPhysicalGroup( surfDim, surfPhys[str(s_phys)], tag=int(s_phys) )
-        gmsh.model.setPhysicalName ( surfDim, int(s_phys), meshKeysDict[s_phys]      )
+        gmsh.model.setPhysicalName ( surfDim, int(s_phys), physNameDict[s_phys]      )
     for s_phys in list( voluPhys.keys() ):
         gmsh.model.addPhysicalGroup( voluDim, voluPhys[str(s_phys)], tag=int(s_phys) )
-        gmsh.model.setPhysicalName ( voluDim, int(s_phys), meshKeysDict[s_phys]      )
+        gmsh.model.setPhysicalName ( voluDim, int(s_phys), physNameDict[s_phys]      )
         
     # ------------------------------------------------- #
     # --- [7] make list for every dimtags's keys    --- #
