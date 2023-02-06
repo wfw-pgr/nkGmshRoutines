@@ -5,7 +5,7 @@ import numpy as np
 # ===  load__dimtags.py                                 === #
 # ========================================================= #
 
-def load__dimtags( inpFile=None ):
+def load__dimtags( inpFile=None, dimtags=None ):
 
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
@@ -28,7 +28,15 @@ def load__dimtags( inpFile=None ):
     # ------------------------------------------------- #
     for key in ret.keys():
         ret[key] = [ tuple(lst) for lst in ret[key] ]
-    return( ret )
+
+    # ------------------------------------------------- #
+    # --- [5] merge in dimtags                      --- #
+    # ------------------------------------------------- #
+    if ( dimtags is None ):
+        return( ret )
+    else:
+        dimtags = { **dimtags, **ret }
+        return( dimtags )
 
 
 # ========================================================= #
