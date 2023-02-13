@@ -12,7 +12,8 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
 
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
-                       "disk", "circle" ]
+                       "disk", "circle", "quad", "rectangle", \
+                       "point", "point_surf" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -81,6 +82,25 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() == "hollowpipe" ):
             dimtags[key] = define__hollowPipe( card=card )
+            
+        # ------------------------------------------------- #
+        # --- [2-1] add point                           --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() == "point" ):
+            dimtags[key] = define__point( card=card )
+
+        # ------------------------------------------------- #
+        # --- [2-4] point 2 surf                        --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() == "point_surf" ):
+            dimtags[key] = define__point_surf( dimtags=dimtags, card=card )
+
+        # ------------------------------------------------- #
+        # --- [2-1] quad shape                          --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["quad","rectangle"] ):
+            dimtags[key] = define__quad( card=card )
+
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -432,7 +452,113 @@ def define__QuadRing( card=None ):
     # --- [4] return                                --- #
     # ------------------------------------------------- #
     return( ret )
+
+
+
+# ========================================================= #
+# ===  define__point                                    === #
+# ========================================================= #
+
+def define__point( card=None ):
     
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__point] card == ???" )
+    if ( not( "x0"    in card ) ): card["x0"]    = 0.0
+    if ( not( "y0"    in card ) ): card["y0"]    = 0.0
+    if ( not( "z0"    in card ) ): card["z0"]    = 0.0
+    
+    # ------------------------------------------------- #
+    # --- [2] call addCircle                        --- #
+    # ------------------------------------------------- #
+    x0,y0,z0  = card["x0"], card["y0"], card["z0"]
+    point     = gmsh.model.occ.addPoint( x0, y0, z0 )
+    ret       = [(0,point)]
+    
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+# ========================================================= #
+# ===  define__point_surf                          === #
+# ========================================================= #
+
+def define__point_surf( dimtags=None, card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ):
+        sys.exit( "[define__point_surf] card == ???" )
+    key_of_card = card.keys()
+    vertex_list = []
+    pattern     = "point[0-9]*"
+    for key in key_of_card:
+        ret = re.match( pattern, key )
+        if ( ret is None ):
+            pass
+        else:
+            vertex_list.append( card[key] )
+    nVertex     = len( vertex_list )
+    if ( nVertex < 3 ):
+        print( "[define__point_surf] too small nVertex number... [ERROR]" )
+        sys.exit()
+        
+    # ------------------------------------------------- #
+    # --- [2] prepare arguments                     --- #
+    # ------------------------------------------------- #
+    vertex         = np.array( vertex_list )
+    
+    # ------------------------------------------------- #
+    # --- [3] call generate__point_surf        --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__polygon as ply
+    ret   = ply.generate__polygon( vertex=vertex, returnType="dimtags" )
+    gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [4] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+# ========================================================= #
+# ===  define__quad                                     === #
+# ========================================================= #
+
+def define__quad( card=None ):
+    
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__quad] card == ???" )
+    if ( not( "x0"    in card ) ): card["x0"]    = 0.0
+    if ( not( "y0"    in card ) ): card["y0"]    = 0.0
+    if ( not( "z0"    in card ) ): card["z0"]    = 0.0
+    if ( not( "dx"    in card ) ): card["dx"]    = 0.0
+    if ( not( "dy"    in card ) ): card["dy"]    = 0.0
+    if ( not( "dz"    in card ) ): card["dz"]    = 0.0
+    
+    # ------------------------------------------------- #
+    # --- [2] call addCircle                        --- #
+    # ------------------------------------------------- #
+    x0,y0,z0  = card["x0"], card["y0"], card["z0"]
+    dx,dy     = card["dx"], card["dy"]
+    rect      = gmsh.model.occ.addRectangle( x0, y0, z0, dx, dy )
+    ret       = [(2,rect)]
+    
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+
 
 # ========================================================= #
 # ===  define__circle                                   === #
@@ -447,6 +573,7 @@ def define__circle( card=None ):
     if ( not( "xc"    in card ) ): card["xc"]    = 0.0
     if ( not( "yc"    in card ) ): card["yc"]    = 0.0
     if ( not( "zc"    in card ) ): card["zc"]    = 0.0
+    if ( not( "rc"    in card ) ): card["rc"]    = 1.0
     if ( not( "zAxis" in card ) ): card["zAxis"] = []
     
     # ------------------------------------------------- #
@@ -465,6 +592,7 @@ def define__circle( card=None ):
     # ------------------------------------------------- #
     ret    = affine__transform( target=ret, card=card )
     return( ret )
+
 
 
 

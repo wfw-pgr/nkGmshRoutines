@@ -77,6 +77,7 @@ def boolean__fromTable( inpFile="test/boolean.conf", dimtags=None, \
         # ------------------------------------------------- #
         if ( card["boolean_type"].lower() == "synchronize" ):
             gmsh.model.occ.synchronize()
+            print( "synchronized" )
         # ------------------------------------------------- #
         # --- [2-a] debug display                       --- #
         # ------------------------------------------------- #
@@ -113,10 +114,10 @@ def boolean__cut( dimtags=None, card=None ):
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
-    if ( not( "removeObject"  in card ) ): card["removeObject"] = True
-    if ( not( "removeTool"    in card ) ): card["removeTool"]   = True
+    if ( not( "removeObject"  in card ) ): card["removeObject"] = None
+    if ( not( "removeTool"    in card ) ): card["removeTool"]   = None
     if ( card["removeObject"] is None   ): card["removeObject"] = True
-    if ( card["removeTool"]   is None   ): card["removeTool"]   = True
+    if ( card["removeTool"]   is None   ): card["removeTool"]   = False
     target, tool = [], []
     for key in card["targetKeys"]:
         target  += dimtags[key]
@@ -154,7 +155,7 @@ def boolean__cut( dimtags=None, card=None ):
 # ===  boolean__fuse                                    === #
 # ========================================================= #
 
-def boolean__fuse( dimtags=None, card=None ):
+def boolean__fuse( dimtags=None, card=None, macOS=True ):
 
     # ------------------------------------------------- #
     # --- [1] argument check                        --- #
@@ -165,8 +166,8 @@ def boolean__fuse( dimtags=None, card=None ):
     # ------------------------------------------------- #
     # --- [2] call generate__sector180              --- #
     # ------------------------------------------------- #
-    if ( not( "removeObject"  in card ) ): card["removeObject"] = True
-    if ( not( "removeTool"    in card ) ): card["removeTool"]   = True
+    if ( not( "removeObject"  in card ) ): card["removeObject"] = None
+    if ( not( "removeTool"    in card ) ): card["removeTool"]   = None
     if ( card["removeObject"] is None   ): card["removeObject"] = True
     if ( card["removeTool"]   is None   ): card["removeTool"]   = True
     target, tool = [], []
@@ -177,6 +178,21 @@ def boolean__fuse( dimtags=None, card=None ):
     ret,fmap  = gmsh.model.occ.fuse( target, tool, \
                                      removeObject=card["removeObject"], \
                                      removeTool  =card["removeTool"]    )
+    # if ( macOS ):
+    #     # fuse's remove Function is mulfunctioning !!!!!
+    #     dims = ret[0][0]
+    #     ents = set( [ int(tag[1]) for tag in ret    ] )
+    #     arg1 = set( [ int(tag[1]) for tag in target ] )
+    #     arg2 = set( [ int(tag[1]) for tag in tool   ] )
+    #     ents = set( ents ) - set( arg1 ) - set(arg2)
+    #     ret  = [ (dims,ent) for ent in ents ]
+
+    #     if ( card["removeObject"] ):
+    #         gmsh.model.occ.remove( target )
+    #     if ( card["removeTool"] ):
+    #         gmsh.model.occ.remove( tool   )
+        
+
     # ------------------------------------------------- #
     # --- [3] erase dimtags resistration            --- #
     # ------------------------------------------------- #

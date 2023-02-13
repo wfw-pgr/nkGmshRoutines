@@ -39,15 +39,13 @@ def generate__polygon( lc=0.0, vertex=None, key="polygon", \
         sys.exit()
         
     # ------------------------------------------------- #
-    # --- [2] generate Arc / End Lines              --- #
+    # --- [2] generate polygon                      --- #
     # ------------------------------------------------- #
     #  -- [2-1] generate points                     --  #
     ptkeys       = []
     for ik,vert in enumerate( vertex ):
         key            = "pt{0:04}".format( ik+1 )
         pts[key]       = [ vert[x_], vert[y_], vert[z_], vert[lc_], vert[tag_] ]
-        # pts[key][tag_] = gmsh.model.occ.addPoint( vert[x_], vert[y_], vert[z_], \
-        #                                           meshSize=vert[lc_] )
         pts[key][tag_] = gmsh.model.occ.addPoint( vert[x_], vert[y_], vert[z_] )
         ptkeys.append( key )
         
