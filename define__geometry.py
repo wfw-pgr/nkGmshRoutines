@@ -13,7 +13,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
                        "disk", "circle", "quad", "rectangle", \
-                       "point", "point_surf" ]
+                       "point", "point_surf", "importStep" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -101,6 +101,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         if ( card["geometry_type"].lower() in ["quad","rectangle"] ):
             dimtags[key] = define__quad( card=card )
 
+        # ------------------------------------------------- #
+        # --- [2-1] import shapes from step             --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["importstep"] ):
+            dimtags[key] = import__occStep( card=card, key=key )
 
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
@@ -591,6 +596,61 @@ def define__circle( card=None ):
     # --- [3] affine__transform                     --- #
     # ------------------------------------------------- #
     ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+
+# ========================================================= #
+# ===  import__occStep                                  === #
+# ========================================================= #
+
+def import__occStep( card=None, key=None ):
+    
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[import__occStep] card == ???" )
+    if ( not( "stepFile"    in card ) ): sys.exit( "[import__occStep] stepFile == ??? " )
+    if ( not( "unit"        in card ) ): card["unit"] = "M"
+    if ( not( "synchronize" in card ) ): card["synchronize"] = True
+    if ( not( "keys"        in card ) ): card["keys"] = None
+
+    # ------------------------------------------------- #
+    # --- [2] call addCircle                        --- #
+    # ------------------------------------------------- #
+    gmsh.option.setNumber( "Geometry.OCCTargetUnit", card["unit"] )
+    ret       = gmsh.model.occ.importShapes( card["stepFile"] )
+    dim       = ret[0][0]
+    nEntities = len( ret )
+    entities  = [ int(dimtag[1]) for dimtag in ret ]
+
+    if ( card["synchronize"] ): gmsh.model.occ.synchronize()
+
+    # ------------------------------------------------- #
+    # --- [3] naming                                --- #
+    # ------------------------------------------------- #
+    if ( card["keys"] is None ):
+        if ( nEntities == 1 ):
+            card["keys"] = [ key ]
+        else:
+            baseName     = key + ".{0:" + len( str(nEntities) ) + "}"
+            card["keys"] = [ baseName.format( ik+1 ) for ik in range( nEntities ) ]
+    ret = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
+            
+    # ------------------------------------------------- #
+    # --- [4] display information                   --- #
+    # ------------------------------------------------- #
+    print()
+    print( "-"*30 + "   [import__occStep.py]    " + "-"*30 )
+    print()
+    print( "[import__occStep.py] inpFile    == {0}".format( card["stepFile"] ) )
+    print( "[import__occStep.py] dim        == {0}".format( dim              ) )
+    print( "[import__occStep.py] nEntities  == {0}".format( nEntities        ) )
+    print( "[import__occStep.py] entities   == {0}".format( entities         ) )
+    print()
+    print( "-"*88 )
+    print()
+    
     return( ret )
 
 
