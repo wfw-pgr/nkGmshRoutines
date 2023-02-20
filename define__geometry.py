@@ -586,12 +586,12 @@ def define__circle( card=None ):
     # ------------------------------------------------- #
     xc,yc,zc  = card["xc"], card["yc"], card["zc"]
     rc        = card["rc"]
-    circleL   = gmsh.model.occ.addCircle( xc, yc, zc, rc, zAxis=zAxis )
+    circleL   = gmsh.model.occ.addCircle( xc, yc, zc, rc, zAxis=card["zAxis"] )
     lineGroup = gmsh.model.occ.addCurveLoop( [ circleL ] )
     circle    = gmsh.model.occ.addPlaneSurface( [ lineGroup ] )
-    ret       = [(3,circle)]
+    ret       = [(2,circle)]
     gmsh.model.occ.synchronize()
-    
+
     # ------------------------------------------------- #
     # --- [3] affine__transform                     --- #
     # ------------------------------------------------- #
@@ -618,7 +618,7 @@ def import__occStep( card=None, key=None ):
     # ------------------------------------------------- #
     # --- [2] call addCircle                        --- #
     # ------------------------------------------------- #
-    gmsh.option.setNumber( "Geometry.OCCTargetUnit", card["unit"] )
+    gmsh.option.setString( "Geometry.OCCTargetUnit", card["unit"] )
     ret       = gmsh.model.occ.importShapes( card["stepFile"] )
     dim       = ret[0][0]
     nEntities = len( ret )
@@ -635,7 +635,7 @@ def import__occStep( card=None, key=None ):
         else:
             baseName     = key + ".{0:" + len( str(nEntities) ) + "}"
             card["keys"] = [ baseName.format( ik+1 ) for ik in range( nEntities ) ]
-    ret = { keys[ik]:[ret[ik]] for ik in range( nEntities ) }
+    ret = { card["keys"][ik]:[ret[ik]] for ik in range( nEntities ) }
             
     # ------------------------------------------------- #
     # --- [4] display information                   --- #
