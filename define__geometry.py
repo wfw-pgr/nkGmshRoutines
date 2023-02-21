@@ -622,9 +622,9 @@ def import__occStep( card=None, key=None ):
     # --  new command    -- #
     # gmsh.option.setString( "Geometry.OCCTargetUnit", card["unit"] )
     # -- classic command -- #
-    if   ( card["unit"].local() in [ "m"  ] ):
+    if   ( card["unit"].lower() in [ "m"  ] ):
         scaling = 1.0
-    elif ( card["unit"].local() in [ "mm" ] ):
+    elif ( card["unit"].lower() in [ "mm" ] ):
         scaling = 1.0e-3
     else:
         print( "[define__geometry.py] @ import__occStep(),  unit == ??? [ERROR]" )
