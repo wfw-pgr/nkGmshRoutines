@@ -617,9 +617,23 @@ def import__occStep( card=None, key=None ):
     if ( not( "synchronize" in card ) ): card["synchronize"] = True
 
     # ------------------------------------------------- #
-    # --- [2] call addCircle                        --- #
+    # --- [2] unit settings                         --- #
     # ------------------------------------------------- #
-    gmsh.option.setString( "Geometry.OCCTargetUnit", card["unit"] )
+    # --  new command    -- #
+    # gmsh.option.setString( "Geometry.OCCTargetUnit", card["unit"] )
+    # -- classic command -- #
+    if   ( card["unit"].local() in [ "m"  ] ):
+        scaling = 1.0
+    elif ( card["unit"].local() in [ "mm" ] ):
+        scaling = 1.0e-3
+    else:
+        print( "[define__geometry.py] @ import__occStep(),  unit == ??? [ERROR]" )
+        sys.exit()
+    gmsh.option.setNumber( "Geometry.OCCScaling", scaling )
+    
+    # ------------------------------------------------- #
+    # --- [3] call importShapes                     --- #
+    # ------------------------------------------------- #
     ret       = gmsh.model.occ.importShapes( card["stepFile"] )
     dim       = ret[0][0]
     nEntities = len( ret )
@@ -628,7 +642,7 @@ def import__occStep( card=None, key=None ):
     if ( card["synchronize"] ): gmsh.model.occ.synchronize()
 
     # ------------------------------------------------- #
-    # --- [3] naming                                --- #
+    # --- [4] naming                                --- #
     # ------------------------------------------------- #
     if ( card["keys"] is None ):
         if ( nEntities == 1 ):
@@ -639,13 +653,13 @@ def import__occStep( card=None, key=None ):
     ret_dimtags = { card["keys"][ik]:[ret[ik]] for ik in range( nEntities ) }
 
     # ------------------------------------------------- #
-    # --- [4] affine__transform                     --- #
+    # --- [5] affine__transform                     --- #
     # ------------------------------------------------- #
     for key in ret_dimtags.keys():
         affine__transform( target=ret_dimtags[key], card=card )
 
     # ------------------------------------------------- #
-    # --- [5] display information                   --- #
+    # --- [6] display information                   --- #
     # ------------------------------------------------- #
     print()
     print( "-"*30 + "   [import__occStep.py]    " + "-"*30 )
