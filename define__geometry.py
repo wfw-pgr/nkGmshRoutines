@@ -13,7 +13,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
                        "disk", "circle", "quad", "rectangle", \
-                       "point", "point_surf", "importStep" ]
+                       "point", "point_surf", "importstep" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -105,8 +105,9 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # --- [2-1] import shapes from step             --- #
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["importstep"] ):
-            dimtags[key] = import__occStep( card=card, key=key )
-
+            ret     = import__occStep( card=card, key=key )
+            dimtags = { **dimtags, **ret }
+            
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
         # ------------------------------------------------- #
@@ -611,9 +612,9 @@ def import__occStep( card=None, key=None ):
     # ------------------------------------------------- #
     if ( card is None ): sys.exit( "[import__occStep] card == ???" )
     if ( not( "stepFile"    in card ) ): sys.exit( "[import__occStep] stepFile == ??? " )
-    if ( not( "unit"        in card ) ): card["unit"] = "M"
+    if ( not( "unit"        in card ) ): card["unit"]        = "M"
+    if ( not( "keys"        in card ) ): card["keys"]        = None
     if ( not( "synchronize" in card ) ): card["synchronize"] = True
-    if ( not( "keys"        in card ) ): card["keys"] = None
 
     # ------------------------------------------------- #
     # --- [2] call addCircle                        --- #
@@ -635,10 +636,16 @@ def import__occStep( card=None, key=None ):
         else:
             baseName     = key + ".{0:" + len( str(nEntities) ) + "}"
             card["keys"] = [ baseName.format( ik+1 ) for ik in range( nEntities ) ]
-    ret = { card["keys"][ik]:[ret[ik]] for ik in range( nEntities ) }
-            
+    ret_dimtags = { card["keys"][ik]:[ret[ik]] for ik in range( nEntities ) }
+
     # ------------------------------------------------- #
-    # --- [4] display information                   --- #
+    # --- [4] affine__transform                     --- #
+    # ------------------------------------------------- #
+    for key in ret_dimtags.keys():
+        affine__transform( target=ret_dimtags[key], card=card )
+
+    # ------------------------------------------------- #
+    # --- [5] display information                   --- #
     # ------------------------------------------------- #
     print()
     print( "-"*30 + "   [import__occStep.py]    " + "-"*30 )
@@ -650,8 +657,7 @@ def import__occStep( card=None, key=None ):
     print()
     print( "-"*88 )
     print()
-    
-    return( ret )
+    return( ret_dimtags )
 
 
 
