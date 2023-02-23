@@ -12,7 +12,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
 
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
-                       "disk", "circle", "quad", "rectangle", \
+                       "disk", "circle", "circlearc", "quad", "rectangle", \
                        "point", "point_surf", "importstep" ]
     
     # ------------------------------------------------- #
@@ -72,6 +72,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["circle","disk"]  ):
             dimtags[key] = define__circle ( card=card )
+        # ------------------------------------------------- #
+        # --- [2-7] circle  Arc shape                   --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["circlearc"] ):
+            dimtags[key] = define__circleArc( card=card )
         # ------------------------------------------------- #
         # --- [2-8] cylinder shape (obsolete)           --- #
         # ------------------------------------------------- #
@@ -209,6 +214,7 @@ def define__cylindrical( card=None ):
     ret    = affine__transform( target=ret, card=card )
     return( ret )
 
+
 # ========================================================= #
 # ===  define__cylinder                                 === #
 # ========================================================= #
@@ -230,7 +236,7 @@ def define__cylinder( card=None ):
     xc,yc,zc  = card["xc"], card["yc"], card["zc"]
     if ( card["centering"] ):
         xc,yc,zc  = xc-0.5*card["dx"], yc-0.5*card["dy"], zc-0.5*card["dz"]
-    dx,dy,dz  = card["dx"]               , card["dy"]               , card["dz"]
+    dx,dy,dz  = card["dx"], card["dy"], card["dz"]
     r1        = card["r1"]
     if ( "r2" in card ):
         r2    = card["r2"]
@@ -593,6 +599,61 @@ def define__circle( card=None ):
     ret       = [(2,circle)]
     gmsh.model.occ.synchronize()
 
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+
+# ========================================================= #
+# ===  define__circleArc                                === #
+# ========================================================= #
+
+def define__circleArc( card=None ):
+
+    dim_, tag_, lDim, sDim, vDim = 0, 1, 1, 2, 3
+    
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__circleArc] card == ???" )
+    if ( not( "x0"      in card ) ): card["x0"]      = 0.0
+    if ( not( "y0"      in card ) ): card["y0"]      = 0.0
+    if ( not( "z0"      in card ) ): card["z0"]      = 0.0
+    if ( not( "delta"   in card ) ): card["delta"]   = [0.0,0.0,1.0]
+    if ( not( "r0"      in card ) ): card["r0"]      = 1.0
+    if ( not( "th1"     in card ) ): card["th1"]     = 0.0
+    if ( not( "th2"     in card ) ): card["th2"]     = 360.0
+    if ( not( "surface" in card ) ): card["surface"] = False
+    if ( not( "volume"  in card ) ): card["volume"]  = False
+    
+    # ------------------------------------------------- #
+    # --- [2] call addCircle                        --- #
+    # ------------------------------------------------- #
+    th1, th2  = np.pi / 180.0 * card["th1"], np.pi / 180.0 * card["th2"]
+    lineC     = gmsh.model.occ.addCircle( card["x0"], card["y0"], card["z0"], card["r0"], \
+                                          angle1=th1, angle2=th2 )
+    ret       = [(lDim,lineC)]
+    
+    if ( card["surface"] or card["volume"] ):
+        if ( np.round( np.abs( card["th1"]-card["th2"] ), 10 ) == 360.0 ):
+            curveLoop = gmsh.model.occ.addCurveLoop( [ lineC ] )
+        else:
+            pt0       = gmsh.model.occ.addPoint( card["x0"], card["y0"], card["z0"] )
+            gmsh.model.occ.synchronize()
+            pt1,pt2   = gmsh.model.getBoundary( [(lDim,lineC)], recursive=True, combined=False )
+            line1     = gmsh.model.occ.addLine ( pt0, pt1[tag_] )
+            line2     = gmsh.model.occ.addLine ( pt2[tag_], pt0 )
+            curveLoop = gmsh.model.occ.addCurveLoop( [line1,lineC,line2] )
+        surfNum   = gmsh.model.occ.addPlaneSurface( [ curveLoop ] )
+        ret       = [ (sDim,surfNum) ]
+
+    if ( card["volume"] ):
+        extruded  = gmsh.model.occ.extrude( ret, *card["delta"] )
+        ret       = [ dimtag for dimtag in extruded if dimtag[dim_] == vDim ]
+    
     # ------------------------------------------------- #
     # --- [3] affine__transform                     --- #
     # ------------------------------------------------- #
