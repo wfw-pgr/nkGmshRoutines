@@ -17,28 +17,25 @@ def define__poleSurface_coordinate( const=None ):
     # ------------------------------------------------- #
     # --- [2] parameter check                       --- #
     # ------------------------------------------------- #
-    r1    = const["pole.r0"]
-    if   ( const["mode"].lower() == "full"  ):
-        th1, th2 =   0.0, +360.0
-    elif ( const["mode"].lower() == "right" ):
-        th1, th2 = -90.0,  +90.0
-    elif ( const["mode"].lower() == "left"  ):
-        th1, th2 = +90.0, +270.0
-    else:
-        print( "[define__poleSurface_coordinate] unknwon mode  " )
-        sys.exit()
+    r0 = const["geometry.r_pole"]
 
     # ------------------------------------------------- #
     # --- [3] geometry making                       --- #
     # ------------------------------------------------- #
-    table = { "region": { "geometry_type":"circleArc", \
-                          "x0":0.0, "y0":0.0, "z0":0.0, \
-                          "r0":r1, "th1":th1, "th2":th2, \
-                          "surface":True }  }
+    if   ( const["side"].lower() in [ "+"] ):
+        th1, th2 = -90.0, +90.0
+    elif ( const["side"].lower() in [ "-"] ):
+        th1, th2 = +90.0, 270.0
+    elif ( const["side"].lower() in [ "+-", "-+" ] ):
+        th1, th2 =   0.0, 360.0
+
+    table   = { "region": { "geometry_type":"circleArc", \
+                            "x0":0.0, "y0":0.0, "z0":0.0, \
+                            "r0":r0, "th1":th1, "th2":th2, \
+                            "surface":True } }
     import nkGmshRoutines.geometrize__fromTable as gft
     ret = gft.geometrize__fromTable( table=table )
     return( ret )
-
 
 
 # ========================================================= #
@@ -80,12 +77,14 @@ def define__poleSurface_2d( const=None ):
         evaluation = const["geometry.pole.direct-math.mathEval"]
     else:
         print( "\033[31m" + "[define__poleSurface_2d.py] under construction..." + "\033[0m" )
+    entities      = ",".join( list( dimtags.keys() ) )
     physContents  = "# <names> key type dimtags_keys physNum\n"
-    physContents += "region surf [region] 201\n"
+    physContents += "region surf [{}] 201\n".format( entities )
     meshContents  = "# <names> key physNum meshType resolution1 resolution2 evaluation\n"
     meshContents += "region 201 {0} {1} {2} {3}\n"\
         .format( const["geometry.pole.meshType"] , const["geometry.pole.meshsize1"], \
                  const["geometry.pole.meshsize2"], evaluation )
+    
     # -- write in a file -- #
     with open( physFile, "w" ) as f:
         f.write( physContents )
@@ -99,7 +98,8 @@ def define__poleSurface_2d( const=None ):
     uniform_size     = 0.060
     if ( mesh_from_config ):
         import nkGmshRoutines.assign__meshsize as ams
-        meshes = ams.assign__meshsize( meshFile=meshFile, physFile=physFile, dimtags=dimtags )
+        meshes = ams.assign__meshsize( meshFile=meshFile, physFile=physFile, \
+                                       dimtags=dimtags )
     else:
         import nkGmshRoutines.assign__meshsize as ams
         meshes = ams.assign__meshsize( uniform=uniform_size, dimtags=dimtags )
@@ -120,11 +120,11 @@ def define__poleSurface_2d( const=None ):
 
 if ( __name__=="__main__" ):
 
-    const = {}
-    const["pole.r0"] = 1.050
-    const["mode"]    = "right"
-    const["geometry.pole.meshType"] = "direct-math"
-    const["geometry.pole.meshsize1"] = 0.0125
-    const["geometry.pole.meshsize2"] = 0.0500
+    const                                       = {}
+    const["geometry.r_pole"]                    = 1.050
+    const["side"]                               = "-"
+    const["geometry.pole.meshType"]             = "direct-math"
+    const["geometry.pole.meshsize1"]            = 0.0125
+    const["geometry.pole.meshsize2"]            = 0.0500
     const["geometry.pole.direct-math.mathEval"] = "(0.05/((sqrt(x^2+y^2)/1.05)^10+1))*Max(1/((sqrt(x^2+y^2)/0.9)^100+1),Min(1,2^(-20*x)*2^(20*y)+0.5))"
     define__poleSurface_2d( const=const )

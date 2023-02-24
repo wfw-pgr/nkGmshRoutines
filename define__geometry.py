@@ -13,6 +13,7 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
     geometry_types = [ "quadring", "cube", "cylinder", "pipe", "cylindrical", "sphere", \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
                        "disk", "circle", "circlearc", "quad", "rectangle", \
+                       "sector180", "sector90", \
                        "point", "point_surf", "importstep" ]
     
     # ------------------------------------------------- #
@@ -77,6 +78,11 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         # ------------------------------------------------- #
         if ( card["geometry_type"].lower() in ["circlearc"] ):
             dimtags[key] = define__circleArc( card=card )
+        # ------------------------------------------------- #
+        # --- [2-7] sector180 shape                     --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["sector180"] ):
+            dimtags[key] = define__sector180( card=card )
         # ------------------------------------------------- #
         # --- [2-8] cylinder shape (obsolete)           --- #
         # ------------------------------------------------- #
@@ -447,6 +453,7 @@ def define__QuadRing( card=None ):
     # ------------------------------------------------- #
     zF   = card["z1"]
     zH   = card["z2"] - card["z1"]
+    import nkGmshRoutines.generate__sector180 as sec
     ret1 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="+", zoffset=zF,\
                                     height=zH, fuse=True, defineVolu=True )
     ret2 = sec.generate__sector180( r1=card["r1"], r2=card["r2"], side="-", zoffset=zF,\
@@ -658,6 +665,68 @@ def define__circleArc( card=None ):
     # --- [3] affine__transform                     --- #
     # ------------------------------------------------- #
     ret    = affine__transform( target=ret, card=card )
+    return( ret )
+
+
+# ========================================================= #
+# ===  define sector180                                 === #
+# ========================================================= #
+
+def define__sector180( card=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    dim_, tag_, lDim, sDim, vDim = 0, 1, 1, 2, 3
+    
+    # ------------------------------------------------- #
+    # --- [1] argument check                        --- #
+    # ------------------------------------------------- #
+    if ( card is None ): sys.exit( "[define__sector180] card == ???" )
+    if ( not( "lc"      in card ) ): card["lc"]      = None
+    if ( not( "x0"      in card ) ): card["x0"]      = 0.0
+    if ( not( "y0"      in card ) ): card["y0"]      = 0.0
+    if ( not( "z0"      in card ) ): card["z0"]      = 0.0
+    if ( not( "delta"   in card ) ): card["delta"]   = [0.0,0.0,1.0]
+    if ( not( "r1"      in card ) ): card["r1"]      = 0.0
+    if ( not( "r2"      in card ) ): card["r2"]      = 1.0
+    if ( not( "th1"     in card ) ): card["th1"]     = 0.0
+    if ( not( "th2"     in card ) ): card["th2"]     = 360.0
+    if ( not( "surface" in card ) ): card["surface"] = False
+    if ( not( "volume"  in card ) ): card["volume"]  = False
+
+    origin = [ card["x0"], card["y0"] ]
+    z0     = card["z0"]
+    
+    # ------------------------------------------------- #
+    # --- [2] call generate__sector180              --- #
+    # ------------------------------------------------- #
+    import nkGmshRoutines.generate__sector180 as sec
+    if ( card["side"] in ["+","+-","-+"] ):
+        ret1 = sec.generate__sector180( lc=card["lc"], \
+                                        r1=card["r1"], r2=card["r2"], side="+", zoffset=z0, \
+                                        origin=origin, fuse=True, \
+                                        defineSurf=True, defineVolu=False )
+        ret  = ret1
+    if ( card["side"] in ["-","+-","-+"] ):
+        ret2 = sec.generate__sector180( lc=card["lc"], \
+                                        r1=card["r1"], r2=card["r2"], side="-", zoffset=z0, \
+                                        origin=origin, fuse=True, \
+                                        defineSurf=True, defineVolu=False )
+        ret  = ret1
+    gmsh.model.occ.synchronize()
+    if ( card["side"] in ["+-","-+"] ):
+        ret,fm = gmsh.model.occ.fuse( ret1, ret2 )
+        gmsh.model.occ.synchronize()
+    
+    # ------------------------------------------------- #
+    # --- [3] affine__transform                     --- #
+    # ------------------------------------------------- #
+    ret    = affine__transform( target=ret, card=card )
+    
+    # ------------------------------------------------- #
+    # --- [4] return                                --- #
+    # ------------------------------------------------- #
     return( ret )
 
 

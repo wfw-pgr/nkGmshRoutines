@@ -7,12 +7,12 @@ import nkUtilities.load__keyedTable as lkt
 # ===  assign mesh size ( main routine )                === #
 # ========================================================= #
 def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
-                      dimtags=None, uniform=None, target="volu" ):
+                      dimtags=None, uniform=None, target=None ):
 
     dim_   , ent_    = 0, 1
     ptsDim , lineDim = 0, 1
     surfDim, voluDim = 2, 3
-    
+
     # ------------------------------------------------- #
     # --- [1] Arguments                             --- #
     # ------------------------------------------------- #
@@ -30,6 +30,9 @@ def assign__meshsize( meshFile=None, physFile=None, logFile=None, \
     if ( meshFile is None ): sys.exit( "[assign__meshsize.py] meshFile == ???" )
     if ( physFile is None ): sys.exit( "[assign__meshsize.py] physFile == ???" )
     if ( dimtags  is None ): sys.exit( "[assign__meshsize.py] dimtags  == ???" )
+    if ( target   is None ):
+        max_dims = max( [ dt[dim_] for dimtag in dimtags.values() for dt in dimtag ] )
+        target   = ( ["pts","line","surf","volu"] )[max_dims]
     
     # ------------------------------------------------- #
     # --- [2] obtain table & possible dimtags keys  --- #
@@ -290,6 +293,7 @@ def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="vol
         gmsh.model.mesh.field.setNumbers( fieldrest, "EdgesList", edges     )
         regions   = [ int( dimtag[1] ) for dimtag in dimtags_v ]
         gmsh.model.mesh.field.setNumbers( fieldrest, "RegionsList", regions )
+        # -- future change ??  InField, SurfacesList, CurvesList, VolumesList ?? -- #
     elif ( target == "surf" ):
         dimtags_s = [(itarget,volume_num)]
         dimtags_l = gmsh.model.getBoundary( dimtags_s, combined=False, oriented=False )
@@ -299,6 +303,7 @@ def assign__meshsize_on_each_volume( volume_num=None, meshsize=None, target="vol
         gmsh.model.mesh.field.setNumber ( fieldrest, "IField"   , fieldmath )
         gmsh.model.mesh.field.setNumbers( fieldrest, "FacesList", faces     )
         gmsh.model.mesh.field.setNumbers( fieldrest, "EdgesList", edges     )
+        # -- future change ??  InField, SurfacesList, CurvesList, VolumesList ?? -- #
     else:
         print( "[assign__meshsize_on_each_volume] ONLY volu & surf is implemented..." )
         sys.exit()
@@ -388,10 +393,9 @@ def acquire__mathEval( volume_num=None, meshType=None, itarget=None, \
         t_eval     = "(0.5*(1.0+y/sqrt(x*x+y*y)))"
         mathEval   = "(({1}-{0})*(Max(({2}),({3}),({4})))+{0})"\
             .format( meshsize[0], meshsize[1], r_eval, z_eval, t_eval )
-
-    debug = True
-    if ( debug ):
-        print( mathEval )
+    else:
+        print( "[assign__meshsize.py] unknwon meshType.... {} [ERROR]".format( meshType ) )
+        sys.exit()
         
     return( mathEval )
 

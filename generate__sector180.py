@@ -59,8 +59,14 @@ def generate__sector180( lc=None, r1=0.0, r2=1.0, side="+", tag=-1, fuse=False, 
         ret = [ ret1, ret2 ]
 
     if ( fuse ):
-        targets = [ (3, (ret1["volu"])["sector"] ) ]
-        tools   = [ (3, (ret2["volu"])["sector"] ) ]
+        if ( defineVolu ):
+            targets = [ (3, (ret1["volu"])["sector"] ) ]
+            tools   = [ (3, (ret2["volu"])["sector"] ) ]
+        elif ( defineSurf ):
+            targets = [ (2, (ret1["surf"])["sector"] ) ]
+            tools   = [ (2, (ret2["surf"])["sector"] ) ]
+        else:
+            sys.exit( "ERROR vol or surf" )
         ret = gmsh.model.occ.fuse( targets, tools, tag=tag, removeObject=True, removeTool=True )
         ret = ret[0]
         
