@@ -39,18 +39,6 @@ def define__poleModel( dimtags={}, const=None, mesh2dFile="msh/poleSurface_2d.ms
     # ------------------------------------------------- #
     # --- [2] setup pole surface                    --- #
     # ------------------------------------------------- #
-    # import nkUtilities.equiSpaceGrid as esg
-    # x1MinMaxNum = [ -1.0, 1.0, 31 ]
-    # x2MinMaxNum = [ -1.0, 1.0, 31 ]
-    # x3MinMaxNum = [  0.0, 0.0,  1 ]
-    # interpolateData  = esg.equiSpaceGrid( x1MinMaxNum=x1MinMaxNum, x2MinMaxNum=x2MinMaxNum, \
-    #                                       x3MinMaxNum=x3MinMaxNum, returnType = "point" )
-    # function   = lambda x,y,r: (-0.12)*np.sqrt( 1.0+np.round( (x/r)**2+(y/r)**2, 10 ) ) + 0.2
-    # parameters = [ 1.0 ]
-    # interpolateData[:,z_]  = function( interpolateData[:,x_], interpolateData[:,y_], *parameters )
-    # import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
-    # m23.modify__2Dmesh_into_3Dmesh( inpFile=mesh2dFile, outFile=mesh3dFile, ref_="z", \
-    #                                 function=function, parameters=parameters )
     import nkUtilities.load__pointFile as lpf
     Data    = lpf.load__pointFile( inpFile=interpolateFile, returnType="point" )
     import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
@@ -199,3 +187,22 @@ if ( __name__=="__main__" ):
     gmsh.finalize()
     print( dimtags )
 
+
+
+
+
+# ------------------------------------------------- #
+# --- dev                         --- #
+# ------------------------------------------------- #
+    # import nkUtilities.equiSpaceGrid as esg
+    # x1MinMaxNum = [ -1.0, 1.0, 31 ]
+    # x2MinMaxNum = [ -1.0, 1.0, 31 ]
+    # x3MinMaxNum = [  0.0, 0.0,  1 ]
+    # interpolateData  = esg.equiSpaceGrid( x1MinMaxNum=x1MinMaxNum, x2MinMaxNum=x2MinMaxNum, \
+    #                                       x3MinMaxNum=x3MinMaxNum, returnType = "point" )
+    # function   = lambda x,y,r: (-0.12)*np.sqrt( 1.0+np.round( (x/r)**2+(y/r)**2, 10 ) ) + 0.2
+    # parameters = [ 1.0 ]
+    # interpolateData[:,z_]  = function( interpolateData[:,x_], interpolateData[:,y_], *parameters )
+    # import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
+    # m23.modify__2Dmesh_into_3Dmesh( inpFile=mesh2dFile, outFile=mesh3dFile, ref_="z", \
+    #                                 function=function, parameters=parameters )
