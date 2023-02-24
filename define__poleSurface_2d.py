@@ -1,0 +1,130 @@
+import numpy as np
+import os, sys
+import gmsh
+
+
+# ========================================================= #
+# ===  define__poleSurface_coordinate                   === #
+# ========================================================= #
+
+def define__poleSurface_coordinate( const=None ):
+
+    # ------------------------------------------------- #
+    # --- [1] arguments                             --- #
+    # ------------------------------------------------- #
+    if ( const is None ): sys.exit( "[define__poleSurface_2d.py] const == ???" )
+
+    # ------------------------------------------------- #
+    # --- [2] parameter check                       --- #
+    # ------------------------------------------------- #
+    r1    = const["pole.r0"]
+    if   ( const["mode"].lower() == "full"  ):
+        th1, th2 =   0.0, +360.0
+    elif ( const["mode"].lower() == "right" ):
+        th1, th2 = -90.0,  +90.0
+    elif ( const["mode"].lower() == "left"  ):
+        th1, th2 = +90.0, +270.0
+    else:
+        print( "[define__poleSurface_coordinate] unknwon mode  " )
+        sys.exit()
+
+    # ------------------------------------------------- #
+    # --- [3] geometry making                       --- #
+    # ------------------------------------------------- #
+    table = { "region": { "geometry_type":"circleArc", \
+                          "x0":0.0, "y0":0.0, "z0":0.0, \
+                          "r0":r1, "th1":th1, "th2":th2, \
+                          "surface":True }  }
+    import nkGmshRoutines.geometrize__fromTable as gft
+    ret = gft.geometrize__fromTable( table=table )
+    return( ret )
+
+
+
+# ========================================================= #
+# ===  define__poleSurface                              === #
+# ========================================================= #
+
+def define__poleSurface_2d( const=None ):
+
+    meshFile = "dat/poleSurface_2d_mesh.conf"
+    physFile = "dat/poleSurface_2d_phys.conf"
+    outFile  = "msh/poleSurface_2d.msh"
+
+    # ------------------------------------------------- #
+    # --- [0] arguments check                       --- #
+    # ------------------------------------------------- #
+    if ( const is None ): sys.exit( "[define__poleSurface_2d.py] const == ???" )
+    
+    # ------------------------------------------------- #
+    # --- [1] initialization of the gmsh            --- #
+    # ------------------------------------------------- #
+    gmsh.initialize()
+    gmsh.option.setNumber( "General.Terminal", 1 )
+    gmsh.option.setNumber( "Mesh.Algorithm"  , 5 )
+    gmsh.option.setNumber( "Mesh.Algorithm3D", 4 )
+    gmsh.option.setNumber( "Mesh.SubdivisionAlgorithm", 0 )
+    gmsh.model.add( "model" )
+    
+    # ------------------------------------------------- #
+    # --- [2] Modeling                              --- #
+    # ------------------------------------------------- #
+    dimtags  = define__poleSurface_coordinate( const=const )
+    gmsh.model.occ.synchronize()
+
+    # ------------------------------------------------- #
+    # --- [3] Mesh File settings                    --- #
+    # ------------------------------------------------- #
+    # -- set file contents -- #
+    if ( const["geometry.pole.meshType"].lower() == "direct-math" ):
+        evaluation = const["geometry.pole.direct-math.mathEval"]
+    else:
+        print( "\033[31m" + "[define__poleSurface_2d.py] under construction..." + "\033[0m" )
+    physContents  = "# <names> key type dimtags_keys physNum\n"
+    physContents += "region surf [region] 201\n"
+    meshContents  = "# <names> key physNum meshType resolution1 resolution2 evaluation\n"
+    meshContents += "region 201 {0} {1} {2} {3}\n"\
+        .format( const["geometry.pole.meshType"] , const["geometry.pole.meshsize1"], \
+                 const["geometry.pole.meshsize2"], evaluation )
+    # -- write in a file -- #
+    with open( physFile, "w" ) as f:
+        f.write( physContents )
+    with open( meshFile, "w" ) as f:
+        f.write( meshContents )
+    
+    # ------------------------------------------------- #
+    # --- [3] Mesh settings                         --- #
+    # ------------------------------------------------- #
+    mesh_from_config = True         # from nkGMshRoutines/test/mesh.conf, phys.conf
+    uniform_size     = 0.060
+    if ( mesh_from_config ):
+        import nkGmshRoutines.assign__meshsize as ams
+        meshes = ams.assign__meshsize( meshFile=meshFile, physFile=physFile, dimtags=dimtags )
+    else:
+        import nkGmshRoutines.assign__meshsize as ams
+        meshes = ams.assign__meshsize( uniform=uniform_size, dimtags=dimtags )
+
+    # ------------------------------------------------- #
+    # --- [4] post process                          --- #
+    # ------------------------------------------------- #
+    gmsh.model.occ.synchronize()
+    gmsh.model.mesh.generate(2)
+    gmsh.write( outFile )
+    gmsh.finalize()
+
+
+
+# ========================================================= #
+# ===   実行部                                          === #
+# ========================================================= #
+
+if ( __name__=="__main__" ):
+
+    const = {}
+    const["pole.r0"] = 1.050
+    const["mode"]    = "right"
+    const["geometry.pole.meshType"] = "direct-math"
+    const["geometry.pole.meshsize1"] = 0.0125
+    const["geometry.pole.meshsize2"] = 0.0500
+    const["geometry.pole.direct-math.mathEval"] = "(0.05/((sqrt(x^2+y^2)/1.05)^10+1))*Max(1/((sqrt(x^2+y^2)/0.9)^100+1),Min(1,2^(-20*x)*2^(20*y)+0.5))"
+    define__poleSurface_2d( const=const )
