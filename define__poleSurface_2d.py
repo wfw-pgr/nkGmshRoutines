@@ -22,11 +22,11 @@ def define__poleSurface_coordinate( const=None ):
     # ------------------------------------------------- #
     # --- [3] geometry making                       --- #
     # ------------------------------------------------- #
-    if   ( const["side"].lower() in [ "+"] ):
+    if   ( const["general.side"].lower() in [ "+"] ):
         th1, th2 = -90.0, +90.0
-    elif ( const["side"].lower() in [ "-"] ):
+    elif ( const["general.side"].lower() in [ "-"] ):
         th1, th2 = +90.0, 270.0
-    elif ( const["side"].lower() in [ "+-", "-+" ] ):
+    elif ( const["general.side"].lower() in [ "+-", "-+" ] ):
         th1, th2 =   0.0, 360.0
 
     table   = { "region": { "geometry_type":"circleArc", \
@@ -42,16 +42,20 @@ def define__poleSurface_coordinate( const=None ):
 # ===  define__poleSurface                              === #
 # ========================================================= #
 
-def define__poleSurface_2d( const=None ):
-
-    meshFile = "dat/poleSurface_2d_mesh.conf"
-    physFile = "dat/poleSurface_2d_phys.conf"
-    outFile  = "msh/poleSurface_2d.msh"
-
+def define__poleSurface_2d( const=None, cnsFile=None, \
+                            meshFile="dat/poleSurface_2d_mesh.conf", \
+                            physFile="dat/poleSurface_2d_phys.conf", \
+                            outFile="msh/poleSurface_2d.msh" ):
+    
     # ------------------------------------------------- #
     # --- [0] arguments check                       --- #
     # ------------------------------------------------- #
-    if ( const is None ): sys.exit( "[define__poleSurface_2d.py] const == ???" )
+    if ( const is None ):
+        if ( cnsFile is not None ):
+            import nkUtilities.load__constants as lcn
+            const = lcn.load__constants( inpFile=cnsFile )
+        else:
+            sys.exit( "[define__poleSurface_2d.py] const == ???" )
     
     # ------------------------------------------------- #
     # --- [1] initialization of the gmsh            --- #
@@ -77,6 +81,7 @@ def define__poleSurface_2d( const=None ):
         evaluation = const["geometry.pole.direct-math.mathEval"]
     else:
         print( "\033[31m" + "[define__poleSurface_2d.py] under construction..." + "\033[0m" )
+        sys.exit()
     entities      = ",".join( list( dimtags.keys() ) )
     physContents  = "# <names> key type dimtags_keys physNum\n"
     physContents += "region surf [{}] 201\n".format( entities )
@@ -113,18 +118,20 @@ def define__poleSurface_2d( const=None ):
     gmsh.finalize()
 
 
-
 # ========================================================= #
 # ===   実行部                                          === #
 # ========================================================= #
 
 if ( __name__=="__main__" ):
 
-    const                                       = {}
-    const["geometry.r_pole"]                    = 1.050
-    const["side"]                               = "-"
-    const["geometry.pole.meshType"]             = "direct-math"
-    const["geometry.pole.meshsize1"]            = 0.0125
-    const["geometry.pole.meshsize2"]            = 0.0500
-    const["geometry.pole.direct-math.mathEval"] = "(0.05/((sqrt(x^2+y^2)/1.05)^10+1))*Max(1/((sqrt(x^2+y^2)/0.9)^100+1),Min(1,2^(-20*x)*2^(20*y)+0.5))"
-    define__poleSurface_2d( const=const )
+    cnsFile = "dat/unified.conf"
+    define__poleSurface_2d( cnsFile=cnsFile )
+
+    # const                                       = {}
+    # const["geometry.r_pole"]                    = 1.050
+    # const["general.side"]                       = "-"
+    # const["geometry.pole.meshType"]             = "direct-math"
+    # const["geometry.pole.meshsize1"]            = 0.0125
+    # const["geometry.pole.meshsize2"]            = 0.0500
+    # const["geometry.pole.direct-math.mathEval"] = "(0.05/((sqrt(x^2+y^2)/1.05)^10+1))*Max(1/((sqrt(x^2+y^2)/0.9)^100+1),Min(1,2^(-20*x)*2^(20*y)+0.5))"
+    # define__poleSurface_2d( const=const )

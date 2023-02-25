@@ -1,34 +1,39 @@
 import numpy as np
-import os, sys
+import os, sys, time
 import gmsh
 
 # ========================================================= #
 # ===  define__poleModel.py                             === #
 # ========================================================= #
 
-def define__poleModel( dimtags={}, const=None, mesh2dFile="msh/poleSurface_2d.msh", \
-                       mesh3dFile="msh/poleSurface_3d.msh", interpolateFile="dat/mshape_svd.dat", \
+def define__poleModel( dimtags={}, const=None, cnsFile=None, \
+                       mesh2dFile="msh/poleSurface_2d.msh", \
+                       mesh3dFile="msh/poleSurface_3d.msh", \
+                       interpolateData=None, interpolateFile=None, \
+                       function=None, func_params=[], \
                        expandFile="msh/poleSurface_3d_expand.msh" ):
 
     x_, y_, z_ = 0, 1, 2
     dim_, tag_ = 0, 1
     sDim, vDim = 2, 3
-
-    const            = {}
-    const["pole.r0"] = 1.000
-    const["pole.z0"] = 0.000
-    const["pole.z1"] = 0.100
-    const["pole.z2"] = 0.200
-    const["pole.z3"] = 0.400
-    const["mode"]    = "right"
-    flatShape        = False
+    stime      = time.perf_counter()
 
     # ------------------------------------------------- #
     # --- [1] preparation                           --- #
     # ------------------------------------------------- #
-    if ( const is None ): sys.exit( "[define__poleModel.py] const == ???" )
-    GapLength  = ( const["pole.z2"] - const["pole.z0"] ) * 1.2
-
+    if ( const is None ):
+        if ( cnsFile is not None ):
+            import nkUtilities.load__constants as lcn
+            const   = lcn.load__constants( inpFile=cnsFile )
+        else:
+            sys.exit( "\033[31m" + "[define__poleModel.py] const == ???" + "\033[0m" )
+    GapLength  = ( const["geometry.z_gapMax"] - const["geometry.z_gapMin"] ) * 1.2
+    flatShape  =   const["geometry.flat_pole"]
+    if ( ( interpolateFile is None ) and ( function is None ) ):
+        print( "\033[31m" + "[define__poleModel.py] interpolateFile or function  "\
+               "should be given.... [ERROR]" + "\033[0m" )
+        sys.exit()
+    
     # ------------------------------------------------- #
     # --- [2] if flat mode                          --- #
     # ------------------------------------------------- #
@@ -39,11 +44,13 @@ def define__poleModel( dimtags={}, const=None, mesh2dFile="msh/poleSurface_2d.ms
     # ------------------------------------------------- #
     # --- [2] setup pole surface                    --- #
     # ------------------------------------------------- #
-    import nkUtilities.load__pointFile as lpf
-    Data    = lpf.load__pointFile( inpFile=interpolateFile, returnType="point" )
+    if ( interpolateFile is not None ):
+        import nkUtilities.load__pointFile as lpf
+        interpolateData = lpf.load__pointFile( inpFile=interpolateFile, returnType="point" )
     import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
     m23.modify__2Dmesh_into_3Dmesh( inpFile=mesh2dFile, outFile=mesh3dFile, ref_="z", \
-                                    interpolateData=interpolateData )
+                                    interpolateData=interpolateData, \
+                                    function=function, parameters=func_params )
 
     # ------------------------------------------------- #
     # --- [3] modify pole surface 3D to expand      --- #
@@ -72,8 +79,18 @@ def define__poleModel( dimtags={}, const=None, mesh2dFile="msh/poleSurface_2d.ms
                                           removeObject=False, removeTool=True  )
     tip, fmp  = gmsh.model.occ.cut      ( baseVols["pole.body"], gap, \
                                           removeObject=True , removeTool=False )
+
+    # ------------------------------------------------- #
+    # --- [5] return                                --- #
+    # ------------------------------------------------- #
     dimtags   = { "pole.gap":gap, "pole.tip":tip, "pole.body":baseVols["pole.body"] }
+    duration  = time.perf_counter() - stime
+    h,m,s    = int(duration)//3600, (int(duration)%3600)//60, int(duration)%60
+    print( "\n" + "-----"*16 )
+    print( "[define__poleModel.py] elapssed time :: {0:02}:{1:02}:{2:02}".format( h,m,s ) )
+    print( "-----"*16 + "\n" )
     return( dimtags )
+
 
 
 # ========================================================= #
@@ -82,50 +99,63 @@ def define__poleModel( dimtags={}, const=None, mesh2dFile="msh/poleSurface_2d.ms
 
 def define__baseVolume( const=None, flatShape=False ):
 
-    r1               =   const["pole.r0"]
-    dz1              = ( const["pole.z1"]-const["pole.z0"] )
-    dz2              = ( const["pole.z2"]-const["pole.z1"] )
-    dz3              = ( const["pole.z3"]-const["pole.z2"] )
-    zc1              =   const["pole.z0"]
-    zc2              =   const["pole.z1"]
-    zc3              =   const["pole.z2"]
-    
-    if   ( const["mode"].lower() == "full"  ):
+    # ------------------------------------------------- #
+    # --- [1] variables                             --- #
+    # ------------------------------------------------- #
+    r1     =   const["geometry.r_pole"]
+    height =   const["geometry.h_iair1"]+const["geometry.h_coil"]+const["geometry.h_iair2"]
+    dz1    =   const["geometry.z_gap"]
+    dz2    =   const["geometry.z_pole"]
+    dz3    =   height - dz1 - dz2
+    zc1    =   0.0
+    zc2    =   dz1
+    zc3    =   dz1 + dz2
+
+    # ------------------------------------------------- #
+    # --- [2] theta by side                         --- #
+    # ------------------------------------------------- #
+    if   ( const["general.side"].lower() in [ "+-", "-+" ] ):
         th1, th2 =   0.0, +360.0
-    elif ( const["mode"].lower() == "right" ):
+    elif ( const["general.side"].lower() in [ "+" ]        ):
         th1, th2 = -90.0,  +90.0
-    elif ( const["mode"].lower() == "left"  ):
+    elif ( const["general.side"].lower() in [ "-" ]        ):
         th1, th2 = +90.0, +270.0
     else:
         print( "[define__poleModel.py] unknwon mode  " )
         sys.exit()
 
+    # ------------------------------------------------- #
+    # --- [3] define volumes                        --- #
+    # ------------------------------------------------- #
     if ( flatShape ):
         table = { "pole.gap"    : { "geometry_type":"circleArc", \
                                     "x0":0.0, "y0":0.0, "z0":zc1, \
-                                    "r1":r1, "th1":th1, "th2":th2, \
+                                    "r0":r1, "th1":th1, "th2":th2, \
                                     "delta":[0,0,dz1], "volume":True }, \
                   "pole.tip"    : { "geometry_type":"circleArc", \
                                     "x0":0.0, "y0":0.0, "z0":zc2, \
-                                    "r1":r1, "th1":th1, "th2":th2, \
+                                    "r0":r1, "th1":th1, "th2":th2, \
                                     "delta":[0,0,dz2], "volume":True }, \
                   "pole.body"   : { "geometry_type":"circleArc", \
                                     "x0":0.0, "y0":0.0, "z0":zc3, \
-                                    "r1":r1, "th1":th1, "th2":th2, \
+                                    "r0":r1, "th1":th1, "th2":th2, \
                                     "delta":[0,0,dz3], "volume":True } }
     else:
         table = { "pole.gap&tip": { "geometry_type":"circleArc", \
                                     "x0":0.0, "y0":0.0, "z0":zc1, \
-                                    "r1":r1, "th1":th1, "th2":th2, \
+                                    "r0":r1, "th1":th1, "th2":th2, \
                                     "delta":[0,0,dz1+dz2], "volume":True }, \
                   "pole.body"   : { "geometry_type":"circleArc", \
                                     "x0":0.0, "y0":0.0, "z0":zc3, \
-                                    "r1":r1, "th1":th1, "th2":th2, \
+                                    "r0":r1, "th1":th1, "th2":th2, \
                                     "delta":[0,0,dz3    ], "volume":True } }
     import nkGmshRoutines.geometrize__fromTable as gft
     ret = gft.geometrize__fromTable( table=table )
-    return( ret )
 
+    # ------------------------------------------------- #
+    # --- [4] return                                --- #
+    # ------------------------------------------------- #
+    return( ret )
 
 
 # ========================================================= #
@@ -134,6 +164,22 @@ def define__baseVolume( const=None, flatShape=False ):
 
 if ( __name__=="__main__" ):
 
+    const                       = {}
+    const["general.side"]       = "+-"
+    const["geometry.r_pole"]    = 1.050
+    const["geometry.z_gap"]     = 0.100
+    const["geometry.z_pole"]    = 0.275
+    const["geometry.h_iair1"]   = 0.25034
+    const["geometry.h_coil"]    = 0.11239
+    const["geometry.h_iair2"]   = 0.10327
+    const["geometry.z_gapMin"]  = 0.013
+    const["geometry.z_gapMax"]  = 0.195
+    const["geometry.flat_pole"] = False
+
+    interpolateFile = None
+    function        = lambda x,y,c1,c2: (c1-c2) + np.sqrt( x**2 + y**2 ) + c2
+    func_params     = [ const["geometry.z_gapMin"], const["geometry.z_gapMax"] ]
+    
     # ------------------------------------------------- #
     # --- [1] initialization of the gmsh            --- #
     # ------------------------------------------------- #
@@ -147,19 +193,10 @@ if ( __name__=="__main__" ):
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
     # ------------------------------------------------- #
-    sample__model = "make"     #  -- [ "import" / "make" ] --  #
-
-    if   ( sample__model == "import" ):
-        dimtagsFile = None
-        stpFile     = "msh/model.stp"
-        import nkGmshRoutines.import__stepFile as isf
-        dimtags     = isf.import__stepFile( inpFile=stpFile, dimtagsFile=dimtagsFile )
-        
-    elif ( sample__model == "make"   ):
-        dimtags = {}
-        dimtags = define__poleModel( dimtags=dimtags )
-        gmsh.model.occ.synchronize()
-    
+    dimtags = {}
+    dimtags = define__poleModel( const=const, dimtags=dimtags, \
+                                 interpolateFile=interpolateFile, \
+                                 function=function, func_params=func_params )
     gmsh.model.occ.synchronize()
     gmsh.model.occ.removeAllDuplicates()
     gmsh.model.occ.synchronize()
@@ -177,7 +214,7 @@ if ( __name__=="__main__" ):
     else:
         import nkGmshRoutines.assign__meshsize as ams
         meshes = ams.assign__meshsize( uniform=uniform_size, dimtags=dimtags )
-
+        
     # ------------------------------------------------- #
     # --- [4] post process                          --- #
     # ------------------------------------------------- #
@@ -185,24 +222,21 @@ if ( __name__=="__main__" ):
     gmsh.model.mesh.generate(3)
     gmsh.write( "msh/model.msh" )
     gmsh.finalize()
-    print( dimtags )
-
-
-
 
 
 # ------------------------------------------------- #
-# --- dev                         --- #
+# --- dev                                       --- #
 # ------------------------------------------------- #
-    # import nkUtilities.equiSpaceGrid as esg
-    # x1MinMaxNum = [ -1.0, 1.0, 31 ]
-    # x2MinMaxNum = [ -1.0, 1.0, 31 ]
-    # x3MinMaxNum = [  0.0, 0.0,  1 ]
-    # interpolateData  = esg.equiSpaceGrid( x1MinMaxNum=x1MinMaxNum, x2MinMaxNum=x2MinMaxNum, \
-    #                                       x3MinMaxNum=x3MinMaxNum, returnType = "point" )
-    # function   = lambda x,y,r: (-0.12)*np.sqrt( 1.0+np.round( (x/r)**2+(y/r)**2, 10 ) ) + 0.2
-    # parameters = [ 1.0 ]
-    # interpolateData[:,z_]  = function( interpolateData[:,x_], interpolateData[:,y_], *parameters )
-    # import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
-    # m23.modify__2Dmesh_into_3Dmesh( inpFile=mesh2dFile, outFile=mesh3dFile, ref_="z", \
-    #                                 function=function, parameters=parameters )
+
+# import nkUtilities.equiSpaceGrid as esg
+# x1MinMaxNum = [ -1.0, 1.0, 31 ]
+# x2MinMaxNum = [ -1.0, 1.0, 31 ]
+# x3MinMaxNum = [  0.0, 0.0,  1 ]
+# interpolateData  = esg.equiSpaceGrid( x1MinMaxNum=x1MinMaxNum, x2MinMaxNum=x2MinMaxNum, \
+#                                       x3MinMaxNum=x3MinMaxNum, returnType = "point" )
+# function   = lambda x,y,r: (-0.12)*np.sqrt( 1.0+np.round( (x/r)**2+(y/r)**2, 10 ) ) + 0.2
+# parameters = [ 1.0 ]
+# interpolateData[:,z_]  = function( interpolateData[:,x_], interpolateData[:,y_], *parameters )
+# import nkMeshRoutines.modify__2Dmesh_into_3Dmesh as m23
+# m23.modify__2Dmesh_into_3Dmesh( inpFile=mesh2dFile, outFile=mesh3dFile, ref_="z", \
+#                                 function=function, parameters=parameters )
