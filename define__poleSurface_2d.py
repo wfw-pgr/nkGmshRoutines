@@ -60,12 +60,16 @@ def define__poleSurface_2d( const=None, cnsFile=None, \
     # ------------------------------------------------- #
     # --- [1] initialization of the gmsh            --- #
     # ------------------------------------------------- #
-    gmsh.initialize()
-    gmsh.option.setNumber( "General.Terminal", 1 )
-    gmsh.option.setNumber( "Mesh.Algorithm"  , 5 )
-    gmsh.option.setNumber( "Mesh.Algorithm3D", 4 )
-    gmsh.option.setNumber( "Mesh.SubdivisionAlgorithm", 0 )
-    gmsh.model.add( "model" )
+    gmsh_initialized = bool( gmsh.isInitialized() )
+    if ( gmsh_initialized ):
+        currentModel = gmsh.model.getCurrent()
+    else:
+        gmsh.initialize()
+        gmsh.option.setNumber( "General.Terminal", 1 )
+        gmsh.option.setNumber( "Mesh.Algorithm"  , 5 )
+        gmsh.option.setNumber( "Mesh.Algorithm3D", 4 )
+        gmsh.option.setNumber( "Mesh.SubdivisionAlgorithm", 0 )
+    gmsh.model.add( "poleSurface2d" )
     
     # ------------------------------------------------- #
     # --- [2] Modeling                              --- #
@@ -115,7 +119,14 @@ def define__poleSurface_2d( const=None, cnsFile=None, \
     gmsh.model.occ.synchronize()
     gmsh.model.mesh.generate(2)
     gmsh.write( outFile )
-    gmsh.finalize()
+    if ( gmsh_initialized ):
+        gmsh.model.remove()
+        gmsh.model.setCurrent( currentModel )
+        print( "\n" + "[define__poleSurface_2d.py] return to Model :: {} "\
+               .format( currentModel ) + "\n" )
+    else:
+        gmsh.finalize()
+    return()
 
 
 # ========================================================= #

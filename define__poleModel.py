@@ -40,6 +40,12 @@ def define__poleModel( dimtags={}, const=None, cnsFile=None, \
     if ( flatShape ):
         dimtags   = define__baseVolume( const=const, flatShape=flatShape )
         return( dimtags )
+
+    # ------------------------------------------------- #
+    # --- [3] define pole surface coordinate        --- #
+    # ------------------------------------------------- #
+    import define__poleSurface_2d as ps2
+    ps2.define__poleSurface_2d( const=const )
     
     # ------------------------------------------------- #
     # --- [2] setup pole surface                    --- #
@@ -164,20 +170,28 @@ def define__baseVolume( const=None, flatShape=False ):
 
 if ( __name__=="__main__" ):
 
-    const                       = {}
-    const["general.side"]       = "+-"
-    const["geometry.r_pole"]    = 1.050
-    const["geometry.z_gap"]     = 0.100
-    const["geometry.z_pole"]    = 0.275
-    const["geometry.h_iair1"]   = 0.25034
-    const["geometry.h_coil"]    = 0.11239
-    const["geometry.h_iair2"]   = 0.10327
-    const["geometry.z_gapMin"]  = 0.013
-    const["geometry.z_gapMax"]  = 0.195
-    const["geometry.flat_pole"] = False
-
+    # const                                       = {}
+    # const["general.side"]                       = "+-"
+    # const["geometry.r_pole"]                    = 1.050
+    # const["geometry.z_gap"]                     = 0.100
+    # const["geometry.z_pole"]                    = 0.275
+    # const["geometry.h_iair1"]                   = 0.25034
+    # const["geometry.h_coil"]                    = 0.11239
+    # const["geometry.h_iair2"]                   = 0.10327
+    # const["geometry.z_gapMin"]                  = 0.013
+    # const["geometry.z_gapMax"]                  = 0.195
+    # const["geometry.flat_pole"]                 = False
+    # const["geometry.pole.meshType"]             = "direct-math"
+    # const["geometry.pole.meshsize1"]            = 0.0125
+    # const["geometry.pole.meshsize2"]            = 0.0500
+    # const["geometry.pole.direct-math.mathEval"] = "(0.05/((sqrt(x^2+y^2)/1.05)^10+1))*Max(1/((sqrt(x^2+y^2)/0.9)^100+1),Min(1,2^(-20*x)*2^(20*y)+0.5))"
+    
+    import nkUtilities.load__constants as lcn
+    cnsFile         = "dat/unified.conf"
+    const           = lcn.load__constants( inpFile=cnsFile )
+    
     interpolateFile = None
-    function        = lambda x,y,c1,c2: (c1-c2) + np.sqrt( x**2 + y**2 ) + c2
+    function        = lambda x,y,c1,c2: (c1-c2) * np.sqrt( x**2 + y**2 ) + c2
     func_params     = [ const["geometry.z_gapMin"], const["geometry.z_gapMax"] ]
     
     # ------------------------------------------------- #
