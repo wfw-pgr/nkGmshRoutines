@@ -3,6 +3,8 @@ import os, sys, re
 import gmsh
 import nkGmshRoutines.generate__sector180 as sec
 
+import nkGmshRoutines.define__nkGeometry as dng
+
 # ========================================================= #
 # ===  define__geometry                                 === #
 # ========================================================= #
@@ -14,7 +16,8 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
                        "hollowpipe", "polygon", "prism", "revolve", "rotated", \
                        "disk", "circle", "circlearc", "quad", "rectangle", \
                        "sector180", "sector90", \
-                       "point", "point_surf", "importstep" ]
+                       "point", "point_surf", "importstep", \
+                       "nkcube" ]
     
     # ------------------------------------------------- #
     # --- [1] load table                            --- #
@@ -118,7 +121,13 @@ def define__geometry( inpFile="test/geometry.conf", keys=None, names=None, \
         if ( card["geometry_type"].lower() in ["importstep"] ):
             ret     = import__occStep( card=card, key=key )
             dimtags = { **dimtags, **ret }
-            
+
+        # ------------------------------------------------- #
+        # --- [2-1] import shapes from step             --- #
+        # ------------------------------------------------- #
+        if ( card["geometry_type"].lower() in ["nkcube"] ):
+            dimtags[key] = dng.define__nkCube( card=card )
+
         # ------------------------------------------------- #
         # --- [2-x] exception                           --- #
         # ------------------------------------------------- #
